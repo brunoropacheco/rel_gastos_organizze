@@ -6,6 +6,7 @@ import smtplib
 import os
 import re
 from json import loads
+import numpy as np
 
 def ajustar_dataframe(df):
     # Ajusta os caracteres da coluna 'Descricao' e 'Tipo'
@@ -58,10 +59,12 @@ Total: R$ {total}
 """
     #Total: R$ {total}
     print(message)
+    
     with smtplib.SMTP("live.smtp.mailtrap.io", 587) as server:
         server.starttls()
         server.login("api", os.getenv('API_MAILTRAP'))
         server.sendmail(sender, receiver, message)
+    
 
 def extrair_transacoes(arquivo):
             with open(arquivo, 'r', encoding='utf-8') as f:
@@ -150,6 +153,25 @@ def obter_transacoes_fatura(headers, id_cartao, id_fatura, url_base):
         else:
             response.raise_for_status()
 
+def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_base, hoje):
+    transacoes_anteriores = {}
+    
+    if 10 <= hoje.day <= 17:
+        id_fatura_anterior = str(int(id_fatura_atual) - 1)
+        url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
+        response = requests.get(url_transacoes, headers=headers)
+        
+        if response.status_code == 200:
+            transacoes = response.json()['transactions']
+            
+            for transacao in transacoes:
+                if transacao['total_installments'] - transacao['installment'] > 0:
+                    transacoes_anteriores[transacao['id']] = transacao
+        else:
+            response.raise_for_status()
+    
+    return transacoes_anteriores
+
 def main():
     """
     Main function to fetch and process financial transactions from Organizze API.
@@ -198,6 +220,12 @@ def main():
     transacoes_itau = obter_transacoes_fatura(headers, id_itau_azul, id_fatura_itau, url_base)
     transacoes_santander = obter_transacoes_fatura(headers, id_sant_aa, id_fatura_santander, url_base)
 
+    transacoes_anteriores_itau = obter_transacoes_fatura_anterior(headers, id_itau_azul, id_fatura_itau, url_base, hoje)
+    transacoes_anteriores_santander = obter_transacoes_fatura_anterior(headers, id_sant_aa, id_fatura_santander, url_base, hoje)
+
+    transacoes_itau['transactions'] += list(transacoes_anteriores_itau.values())
+    transacoes_santander['transactions'] += list(transacoes_anteriores_santander.values())
+
     transacoes_itau = transacoes_itau['transactions']
     transacoes_santander = transacoes_santander['transactions']
 
@@ -217,10 +245,9 @@ def main():
     df_santander = pd.DataFrame(transacoes_santander)
 
     df = pd.concat([df_itau, df_santander], ignore_index=True)
-
     df = ajustar_dataframe(df)
 
-    df.to_csv('transacoes_ajustado.csv')
+    #df.to_csv('transacoes_ajustado.csv')
     #criar_grafico(df)
     df_grouped = df.groupby('Categoria')['Valor'].sum().reset_index()
     limites = {
@@ -239,13 +266,12 @@ def main():
         'viagem': 2000
     }
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites)
-    import numpy as np
     df_grouped['Limite'] = df_grouped['Limite'].replace(0, np.nan)
-    df_grouped['Porcentagem'] = df_grouped['Valor'] / df_grouped['Limite']
     #coluna porcentagem
     df_grouped['Porcentagem'] = df_grouped['Valor'] / df_grouped['Limite']
+    #imprimir o total no email
     print(df_grouped)
-    #enviar_email_mailtrap(df_grouped, df_grouped.sum())
+    enviar_email_mailtrap(df_grouped, df_grouped.sum())
     print("Email enviado com sucesso")
 
 if __name__ == "__main__":
