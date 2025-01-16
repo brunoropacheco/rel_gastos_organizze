@@ -95,15 +95,15 @@ def classificar_despesa(descricao):
         return 'alimentacao_casa'
     elif 'centro_automotivo_pend' in descricao or 'uber' in descricao or 'pop_' in descricao or '99_tecnologia' in descricao or 'hdi' in descricao or '99app' in descricao or 'estaciona' in descricao or 'posto' in descricao or 'conectcar' in descricao or 'tembici' in descricao or 'park' in descricao or 'barcas' in descricao or 'digipare' in descricao or 'auto_pos' in descricao:
         return 'transporte'
-    elif 'daiso' in descricao or 'picadilly' in descricao or 'elister_joias' in descricao or 'nestle_brasil_ltda' in descricao or 'arte_dos_vinhos' in descricao or 'riahcuelo' in descricao or 'americanas' in descricao or 'cell' in descricao or 'mundo_baby' in descricao or 'centauro' in descricao or 'cea' in descricao or 'renner' in descricao or 'pag*lojasrennersa' in descricao or 'iphone' in descricao or 'casa_e_vi' in descricao or 'relusa' in descricao or 'marketplace' in descricao or 'mr_cat' in descricao or 'cresci_e_perdi' in descricao or 'tonys_baby' in descricao or 'cirandinha_baby' in descricao or 'loungerie' in descricao or 'amazon' in descricao or 'shein' in descricao or 'calcad' in descricao or 'mercadolivre' in descricao:
+    elif 'roupas' in descricao or 'panna' in descricao or 'assb_comerci' in descricao or 'toy_boy' in descricao or 'kop' in descricao or 'happy' in descricao or 'presente' in descricao or 'daiso' in descricao or 'picadilly' in descricao or 'elister_joias' in descricao or 'nestle_brasil_ltda' in descricao or 'arte_dos_vinhos' in descricao or 'riahcuelo' in descricao or 'americanas' in descricao or 'cell' in descricao or 'mundo_baby' in descricao or 'centauro' in descricao or 'cea' in descricao or 'renner' in descricao or 'pag*lojasrennersa' in descricao or 'iphone' in descricao or 'casa_e_vi' in descricao or 'relusa' in descricao or 'marketplace' in descricao or 'mr_cat' in descricao or 'cresci_e_perdi' in descricao or 'tonys_baby' in descricao or 'cirandinha_baby' in descricao or 'loungerie' in descricao or 'amazon' in descricao or 'shein' in descricao or 'calcad' in descricao or 'mercadolivre' in descricao:
         return 'compras'
-    elif 'ilha_mix' in descricao or 'melimais' in descricao or 'netflix' in descricao or 'spotify' in descricao or 'apple.com/bill' in descricao or 'apple_com/bill' in descricao or 'primebr' in descricao or 'doist' in descricao:
+    elif 'produtos_globo' in descricao or 'ilha_mix' in descricao or 'melimais' in descricao or 'netflix' in descricao or 'spotify' in descricao or 'apple.com/bill' in descricao or 'apple_com/bill' in descricao or 'primebr' in descricao or 'doist' in descricao:
         return 'servicos'
     elif 'dermage' in descricao or 'drog' in descricao or 'labora' in descricao:
         return 'saude'
     elif 'liberty' in descricao or 'calhas' in descricao or 'first_class' in descricao or 'chaveiro' in descricao or 'leroy' in descricao or 'lojas_g' in descricao or 'angela' in descricao or 'camica' in descricao or 'tok' in descricao or 'darkstore' in descricao:
         return 'casa'
-    elif 'infne' in descricao or 'cisco' in descricao or 'rdmedicine' in descricao:
+    elif 'infne' in descricao or 'cisco' in descricao or 'rdmedicine' in descricao or 'papelaria' in descricao or 'livraria' in descricao or 'colegio' in descricao or 'saraiva' in descricao or 'cursos' in descricao or 'curso' in descricao or 'escola' in descricao or 'faculdade' in descricao or 'universidade' in descricao:
         return 'educacao'
     elif 'funcional' in descricao:
         return 'esporte'
@@ -113,8 +113,6 @@ def classificar_despesa(descricao):
         return 'beleza' 
     elif 'anuid' in descricao:
         return 'anuidade'
-    elif 'panna' in descricao or 'assb_comerci' in descricao or 'toy_boy' in descricao or 'kop' in descricao or 'happy' in descricao:
-        return 'presente'
     else:
         return 'outros'
 
@@ -230,13 +228,13 @@ def main():
     transacoes_santander = transacoes_santander['transactions']
 
     for transacao in transacoes_itau:
-        keys_to_keep = ['description', 'date', 'amount_cents']
+        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment']
         for key in list(transacao.keys()):
             if key not in keys_to_keep:
                 del transacao[key]
 
     for transacao in transacoes_santander:
-        keys_to_keep = ['description', 'date', 'amount_cents']
+        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment']
         for key in list(transacao.keys()):
             if key not in keys_to_keep:
                 del transacao[key]
@@ -247,7 +245,7 @@ def main():
     df = pd.concat([df_itau, df_santander], ignore_index=True)
     df = ajustar_dataframe(df)
 
-    #df.to_csv('transacoes_ajustado.csv')
+    df.to_csv('transacoes_ajustado.csv')
     #criar_grafico(df)
     df_grouped = df.groupby('Categoria')['Valor'].sum().reset_index()
     limites = {
