@@ -220,6 +220,9 @@ def main():
 
     transacoes_anteriores_itau = obter_transacoes_fatura_anterior(headers, id_itau_azul, id_fatura_itau, url_base, hoje)
     transacoes_anteriores_santander = obter_transacoes_fatura_anterior(headers, id_sant_aa, id_fatura_santander, url_base, hoje)
+    #soma 1 ao campo installment dessas transacoes que sao da fatura anterior
+    transacoes_anteriores_itau = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_itau.items()}
+    transacoes_anteriores_santander = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_santander.items()}
 
     transacoes_itau['transactions'] += list(transacoes_anteriores_itau.values())
     transacoes_santander['transactions'] += list(transacoes_anteriores_santander.values())
