@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import datetime
 import requests
 import smtplib
+import os
 import re
 from json import loads
 
@@ -189,7 +190,7 @@ def main():
     faturas_santander = obter_faturas(headers, id_sant_aa, url_base, start_date, end_date)
 
     fatura_atual_itau = verificar_fatura(faturas_itau, 10)
-    fatura_atual_santander = verificar_fatura(faturas_santander, 8)
+    fatura_atual_santander = verificar_fatura(faturas_santander, 10)
 
     id_fatura_itau = fatura_atual_itau['id']
     id_fatura_santander = fatura_atual_santander['id']
