@@ -21,6 +21,12 @@ def ajustar_dataframe(df):
     # Aplica a função para criar a nova coluna 'Categoria'
     df['Categoria'] = df['description'].apply(classificar_despesa)
 
+    # Adiciona transações coringa para categorias sem valor
+    categorias = ['viagem', 'alimentacao_casa', 'seguro_carro', 'transp(ub+gas+vel+ccr)', 'compras', 'assinaturas', 'saude', 'casa', 'educacao', 'esporte', 'diversao-lazer-comida', 'beleza', 'anuidade', 'outros']
+    for categoria in categorias:
+        if categoria not in df['Categoria'].values:
+            df = pd.concat([df, pd.DataFrame([{'description': 'coringa', 'Valor': 0, 'Categoria': categoria}])], ignore_index=True)
+
     #apagar a linha que contem a seguinte cadeia de caracteres 'deb._autom._de_fatura'
     df = df[~df['description'].str.contains('deb._autom._de_fatura')]
 
@@ -44,7 +50,7 @@ def criar_grafico(df):
 
 def enviar_email_mailtrap(df_grouped, total):
     sender = "Alerta Gastos <mailtrap@demomailtrap.com>"
-    receiver = "Gmail Bruno <brunoropacheco@gmail.com>"
+    receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<bruno.rpacheco@al.infnet.edu.br>"
 
     message = f"""\
 Subject: Hi Mailtrap
@@ -96,14 +102,14 @@ def classificar_despesa(descricao):
     elif 'hdi' in descricao:
         return 'seguro_carro'
     elif 'centro_automotivo_pend' in descricao or 'uber' in descricao or 'pop_' in descricao or '99_tecnologia' in descricao or '99app' in descricao or 'estaciona' in descricao or 'posto' in descricao or 'conectcar' in descricao or 'tembici' in descricao or 'park' in descricao or 'barcas' in descricao or 'digipare' in descricao or 'auto_pos' in descricao:
-        return 'transporte'
-    elif 'roupas' in descricao or 'panna' in descricao or 'assb_comerci' in descricao or 'toy_boy' in descricao or 'kop' in descricao or 'happy' in descricao or 'presente' in descricao or 'daiso' in descricao or 'picadilly' in descricao or 'elister_joias' in descricao or 'nestle_brasil_ltda' in descricao or 'arte_dos_vinhos' in descricao or 'riahcuelo' in descricao or 'americanas' in descricao or 'cell' in descricao or 'mundo_baby' in descricao or 'centauro' in descricao or 'cea' in descricao or 'renner' in descricao or 'pag*lojasrennersa' in descricao or 'iphone' in descricao or 'casa_e_vi' in descricao or 'relusa' in descricao or 'marketplace' in descricao or 'mr_cat' in descricao or 'cresci_e_perdi' in descricao or 'tonys_baby' in descricao or 'cirandinha_baby' in descricao or 'loungerie' in descricao or 'amazon' in descricao or 'shein' in descricao or 'calcad' in descricao or 'mercadolivre' in descricao:
+        return 'transp(ub+gas+vel+ccr)'
+    elif 'lojas_g' in descricao or 'roupas' in descricao or 'panna' in descricao or 'assb_comerci' in descricao or 'toy_boy' in descricao or 'kop' in descricao or 'happy' in descricao or 'presente' in descricao or 'daiso' in descricao or 'picadilly' in descricao or 'elister_joias' in descricao or 'nestle_brasil_ltda' in descricao or 'arte_dos_vinhos' in descricao or 'riahcuelo' in descricao or 'americanas' in descricao or 'cell' in descricao or 'mundo_baby' in descricao or 'centauro' in descricao or 'cea' in descricao or 'renner' in descricao or 'pag*lojasrennersa' in descricao or 'iphone' in descricao or 'casa_e_vi' in descricao or 'relusa' in descricao or 'marketplace' in descricao or 'mr_cat' in descricao or 'cresci_e_perdi' in descricao or 'tonys_baby' in descricao or 'cirandinha_baby' in descricao or 'loungerie' in descricao or 'amazon' in descricao or 'shein' in descricao or 'calcad' in descricao or 'mercadolivre' in descricao:
         return 'compras'
     elif 'produtos_globo' in descricao or 'ilha_mix' in descricao or 'melimais' in descricao or 'netflix' in descricao or 'spotify' in descricao or 'apple.com/bill' in descricao or 'apple_com/bill' in descricao or 'primebr' in descricao or 'doist' in descricao:
-        return 'servicos'
+        return 'assinaturas'
     elif 'dermage' in descricao or 'drog' in descricao or 'labora' in descricao:
         return 'saude'
-    elif 'liberty' in descricao or 'calhas' in descricao or 'first_class' in descricao or 'chaveiro' in descricao or 'leroy' in descricao or 'lojas_g' in descricao or 'angela' in descricao or 'camica' in descricao or 'tok' in descricao or 'darkstore' in descricao:
+    elif 'calhas' in descricao or 'first_class' in descricao or 'chaveiro' in descricao or 'leroy' in descricao or 'angela' in descricao or 'camica' in descricao or 'tok' in descricao or 'darkstore' in descricao:
         return 'casa'
     elif 'infne' in descricao or 'cisco' in descricao or 'rdmedicine' in descricao or 'papelaria' in descricao or 'livraria' in descricao or 'colegio' in descricao or 'saraiva' in descricao or 'cursos' in descricao or 'curso' in descricao or 'escola' in descricao or 'faculdade' in descricao or 'universidade' in descricao:
         return 'educacao'
@@ -253,29 +259,31 @@ def main():
     df.to_csv('transacoes_ajustado.csv')
     #criar_grafico(df)
     df_grouped = df.groupby('Categoria')['Valor'].sum().reset_index()
+    # Preencher valores zerados com 0
+    df_grouped['Valor'] = df_grouped['Valor'].abs()
     limites = {
         'alimentacao_casa': 300,
-        'transporte': 1650,
-        'seguro_carro': 680,
-        'saude': 300,
+        'anuidade': 236,
+        'assinaturas': 140,
+        'beleza': 200,
         'casa': 500,
+        'compras': 800,
+        'diversao-lazer-comida': 500,
         'educacao': 2150,
         'esporte': 50,
-        'diversao-lazer-comida': 500,
-        'beleza': 200,
-        'anuidade': 150,
         'outros': 200,
-        'compras': 800,
-        'servicos': 75,
+        'saude': 300,
+        'seguro_carro': 680,
+        'transp(ub+gas+vel+ccr)': 1200,
         'viagem': 2000
     }
-    df_grouped['Limite'] = df_grouped['Categoria'].map(limites)
-    df_grouped['Limite'] = df_grouped['Limite'].replace(0, np.nan)
+    df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
+    #df_grouped['Limite'] = df_grouped['Limite'].replace(0, np.nan)
     #coluna porcentagem
-    df_grouped['Porcentagem'] = df_grouped['Valor'] / df_grouped['Limite']
+    df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
     #imprimir o total no email
     print(df_grouped)
-    enviar_email_mailtrap(df_grouped, df_grouped.sum())
+    enviar_email_mailtrap(df_grouped, round(df_grouped['Valor'].sum(), 2))
     print("Email enviado com sucesso")
 
 if __name__ == "__main__":
