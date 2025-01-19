@@ -48,9 +48,9 @@ def criar_grafico(df):
     # Mostra o gráfico
     plt.show()
 
-def enviar_email_mailtrap(df_grouped, total):
+def enviar_email_mailtrap(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
     sender = "Alerta Gastos <mailtrap@demomailtrap.com>"
-    receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<bruno.rpacheco@al.infnet.edu.br>"
+    receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com"
 
     message = f"""\
 Subject: Hi Mailtrap
@@ -61,16 +61,18 @@ Data: {datetime.datetime.now().strftime('%d/%m/%Y')}
 Despesas por Categoria:
 {df_grouped}
 
-Total: R$ {total}
+Total Utilizado: R$ {total}
+Total Limite: R$ {total_limite}
+Quantidade de transacoes parceladas: {qtde_parcelado}
+Quantidade de transacoes na ultima parcela: {qtde_ultima_parcela}
 """
     #Total: R$ {total}
     print(message)
-    
+
     with smtplib.SMTP("live.smtp.mailtrap.io", 587) as server:
         server.starttls()
         server.login("api", os.getenv('API_MAILTRAP'))
         server.sendmail(sender, receiver, message)
-    
 
 def extrair_transacoes(arquivo):
             with open(arquivo, 'r', encoding='utf-8') as f:
@@ -162,7 +164,7 @@ def obter_transacoes_fatura(headers, id_cartao, id_fatura, url_base):
 def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_base, hoje):
     transacoes_anteriores = {}
     
-    if 10 <= hoje.day <= 17:
+    if 10 <= hoje.day <= 20:
         id_fatura_anterior = str(int(id_fatura_atual) - 1)
         url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
         response = requests.get(url_transacoes, headers=headers)
@@ -179,29 +181,7 @@ def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_ba
     return transacoes_anteriores
 
 def main():
-    """
-    Main function to fetch and process financial transactions from Organizze API.
-    This function performs the following steps:
-    1. Checks for the presence of the 'AUTHORIZATION_HEADER' environment variable.
-    2. Sets up the headers for API requests.
-    3. Defines account IDs for Itau and Santander.
-    4. Constructs the base URL and date range for fetching transactions.
-    5. Fetches invoices for Itau and Santander accounts.
-    6. Verifies and retrieves the current invoice for each account.
-    7. Fetches transactions for the current invoices.
-    8. Filters transactions to keep only relevant keys.
-    9. Creates dataframes for Itau and Santander transactions and concatenates them.
-    10. Adjusts the dataframe and saves it to a CSV file.
-    11. Groups transactions by category and calculates the total value and limits.
-    12. Sends an email with the grouped data and total values.
-    Raises:
-        ValueError: If the 'AUTHORIZATION_HEADER' environment variable is missing.
-    """
-
     token = os.getenv('TOKEN_ORGANIZZE')
-    if not token:
-        raise ValueError("Missing TOKEN_ORGANIZZE environment variable")
-
     headers = {
         'Authorization': f'Basic {token}'
     }
@@ -256,6 +236,14 @@ def main():
     df = pd.concat([df_itau, df_santander], ignore_index=True)
     df = ajustar_dataframe(df)
 
+    #criar uma variavel que soma a quantidade de transacoes parceladas - essa conta e feita somando a quantidade de transacoes que tem as colunas installment e total_installments diferentes
+    df['Parcelado'] = (df['installment'] != df['total_installments']).astype(int)
+    qtde_parcelado = df['Parcelado'].sum()
+
+    #determonar quantas transacoes ja estao na ultima parcela, ou seja, installment = total_installments;total_installments precisa ser maior que 1
+    df['Ultima_parcela'] = ((df['installment'] == df['total_installments']) & (df['total_installments'] > 1)).astype(int)
+    qtde_ultima_parcela = df['Ultima_parcela'].sum()
+    
     df.to_csv('transacoes_ajustado.csv')
     #criar_grafico(df)
     df_grouped = df.groupby('Categoria')['Valor'].sum().reset_index()
@@ -281,9 +269,9 @@ def main():
     #df_grouped['Limite'] = df_grouped['Limite'].replace(0, np.nan)
     #coluna porcentagem
     df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
+    total_limite = df_grouped['Limite'].sum()
     #imprimir o total no email
-    print(df_grouped)
-    enviar_email_mailtrap(df_grouped, round(df_grouped['Valor'].sum(), 2))
+    enviar_email_mailtrap(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
     print("Email enviado com sucesso")
 
 if __name__ == "__main__":
