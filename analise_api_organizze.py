@@ -50,21 +50,33 @@ def criar_grafico(df):
 
 def enviar_email_mailtrap(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
     sender = "Alerta Gastos <mailtrap@demomailtrap.com>"
-    receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com"
+    receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com>"
 
     message = f"""\
 Subject: Hi Mailtrap
 To: {receiver}
 From: {sender}
+Content-Type: text/html
 
-Data: {datetime.datetime.now().strftime('%d/%m/%Y')}
-Despesas por Categoria:
-{df_grouped}
-
-Total Utilizado: R$ {total}
-Total Limite: R$ {total_limite}
-Quantidade de transacoes parceladas: {qtde_parcelado}
-Quantidade de transacoes na ultima parcela: {qtde_ultima_parcela}
+<html>
+  <body>
+    <p>Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</p>
+    <h2>Despesas por Categoria:</h2>
+    <table border="1">
+      <tr>
+        <th>Categoria</th>
+        <th>Valor</th>
+        <th>Limite</th>
+        <th>Porcentagem</th>
+      </tr>
+      {''.join(f'<tr><td>{row["Categoria"]}</td><td>{row["Valor"]}</td><td>{row["Limite"]}</td><td>{row["Porcentagem"]}</td></tr>' for _, row in df_grouped.iterrows())}
+    </table>
+    <p>Total Utilizado: R$ {total}</p>
+    <p>Total Limite: R$ {total_limite}</p>
+    <p>Quantidade de transacoes parceladas: {qtde_parcelado}</p>
+    <p>Quantidade de transacoes na ultima parcela: {qtde_ultima_parcela}</p>
+  </body>
+</html>
 """
     #Total: R$ {total}
     print(message)
