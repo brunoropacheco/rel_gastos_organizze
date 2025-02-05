@@ -111,7 +111,7 @@ def classificar_despesa(descricao):
     # Lógica de classificação
     if 'movida' in descricao or 'rentcars' in descricao or 'melia' in descricao or 'latam' in descricao or 'iberia' in descricao or 'unidas' in descricao or 'airbnb' in descricao or 'azul' in descricao or 'smiles' in descricao or 'gol' in descricao or 'city_hall' in descricao or 'foco_aluguel' in descricao or 'tam_lin' in descricao:
         return 'viagem'
-    elif 'rede_economia' in descricao or 'sam_s_club' in descricao or 'buffet' in descricao or 'hortifruti' in descricao or 'mercado_' in descricao or 'pao_de_açucar' in descricao or 'mercear' in descricao or 'hermon' in descricao or 'tempero' in descricao or 'alimento' in descricao or 'padar' in descricao or 'depos' in descricao or 'sams' in descricao or 'assai' in descricao or 'pao_de' in descricao or 'lulu' in descricao or 'frutas' in descricao:
+    elif 'dom_atacadista' in descricao or 'rede_economia' in descricao or 'sam_s_club' in descricao or 'buffet' in descricao or 'hortifruti' in descricao or 'mercado_' in descricao or 'pao_de_açucar' in descricao or 'mercear' in descricao or 'hermon' in descricao or 'tempero' in descricao or 'alimento' in descricao or 'padar' in descricao or 'depos' in descricao or 'sams' in descricao or 'assai' in descricao or 'pao_de' in descricao or 'lulu' in descricao or 'frutas' in descricao:
         return 'alimentacao_casa'
     elif 'hdi' in descricao:
         return 'seguro_carro'
@@ -175,8 +175,10 @@ def obter_transacoes_fatura(headers, id_cartao, id_fatura, url_base):
 
 def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_base, hoje):
     transacoes_anteriores = {}
+    print (hoje.day)
     
-    if 10 <= hoje.day <= 23:
+    if 10 <= hoje.day <= 31:
+        print(hoje.day)
         id_fatura_anterior = str(int(id_fatura_atual) - 1)
         url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
         response = requests.get(url_transacoes, headers=headers)
