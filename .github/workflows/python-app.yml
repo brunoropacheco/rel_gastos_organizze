@@ -37,3 +37,9 @@ jobs:
     - name: Test with pytest
       run: |
         pytest
+    - name: Run the script
+      env:
+        TOKEN_ORGANIZZE: ${{ secrets.TOKEN_ORGANIZZE }}
+        API_MAILTRAP: ${{ secrets.API_MAILTRAP }}
+      run: |
+        python analise_api_organizze.py
