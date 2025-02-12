@@ -5,8 +5,6 @@ import requests
 import smtplib
 import os
 import re
-from json import loads
-import numpy as np
 
 def ajustar_dataframe(df):
     # Ajusta os caracteres da coluna 'Descricao' e 'Tipo'
@@ -87,15 +85,15 @@ Content-Type: text/html
         server.sendmail(sender, receiver, message)
 
 def extrair_transacoes(arquivo):
-            with open(arquivo, 'r', encoding='utf-8') as f:
-                linhas = f.readlines()
-            
-            transacoes = []
-            for linha in linhas:
-                if re.match(r'\d{2}\.\d{2}\.\d{4}', linha):
-                    transacoes.append(linha.strip().split(';'))
+    with open(arquivo, 'r', encoding='utf-8') as f:
+        linhas = f.readlines()
+    
+    transacoes = []
+    for linha in linhas:
+        if re.match(r'\d{2}\.\d{2}\.\d{4}', linha):
+            transacoes.append(linha.strip().split(';'))
 
-            return transacoes
+    return transacoes
 
 def ajusta_caracteres(coluna):
     mapeamento = {
@@ -175,10 +173,8 @@ def obter_transacoes_fatura(headers, id_cartao, id_fatura, url_base):
 
 def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_base, hoje):
     transacoes_anteriores = {}
-    print (hoje.day)
     
     if 10 <= hoje.day <= 31:
-        print(hoje.day)
         id_fatura_anterior = str(int(id_fatura_atual) - 1)
         url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
         response = requests.get(url_transacoes, headers=headers)
@@ -220,8 +216,13 @@ def main():
     transacoes_itau = obter_transacoes_fatura(headers, id_itau_azul, id_fatura_itau, url_base)
     transacoes_santander = obter_transacoes_fatura(headers, id_sant_aa, id_fatura_santander, url_base)
 
+
+    # por conta do problema do open finance que nao esta trazendo as compras parceladas da fatura anterior automaticamente
+    # vamos buscar as transacoes da fatura anterior e somar 1 ao campo installment
     transacoes_anteriores_itau = obter_transacoes_fatura_anterior(headers, id_itau_azul, id_fatura_itau, url_base, hoje)
     transacoes_anteriores_santander = obter_transacoes_fatura_anterior(headers, id_sant_aa, id_fatura_santander, url_base, hoje)
+    
+    
     #soma 1 ao campo installment dessas transacoes que sao da fatura anterior
     transacoes_anteriores_itau = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_itau.items()}
     transacoes_anteriores_santander = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_santander.items()}
@@ -286,7 +287,6 @@ def main():
     total_limite = df_grouped['Limite'].sum()
     #imprimir o total no email
     enviar_email_mailtrap(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
-    print("Email enviado com sucesso")
 
 if __name__ == "__main__":
     main()
