@@ -48,8 +48,8 @@ def criar_grafico(df):
 
 def enviar_email_mailtrap(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
     sender = "Alerta Gastos <mailtrap@demomailtrap.com>"
-    receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com>"
-
+    #receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com>"
+    receiver = ['brunoropacheco@gmail.com']
     message = f"""\
 Subject: Hi Mailtrap
 To: {receiver}
