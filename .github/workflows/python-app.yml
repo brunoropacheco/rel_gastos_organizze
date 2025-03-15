@@ -8,6 +8,8 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  schedule:
+    - cron: "40 18 * * *" # Roda diariamente às 18:40 UTC (15:40 UTC-3)
 
 permissions:
   contents: read
