@@ -109,27 +109,27 @@ def classificar_despesa(descricao):
     # Lógica de classificação
     if 'movida' in descricao or 'rentcars' in descricao or 'melia' in descricao or 'latam' in descricao or 'iberia' in descricao or 'unidas' in descricao or 'airbnb' in descricao or 'azul' in descricao or 'smiles' in descricao or 'gol' in descricao or 'city_hall' in descricao or 'foco_aluguel' in descricao or 'tam_lin' in descricao:
         return 'viagem'
-    elif 'dom_atacadista' in descricao or 'rede_economia' in descricao or 'sam_s_club' in descricao or 'buffet' in descricao or 'hortifruti' in descricao or 'mercado_' in descricao or 'pao_de_açucar' in descricao or 'mercear' in descricao or 'hermon' in descricao or 'tempero' in descricao or 'alimento' in descricao or 'padar' in descricao or 'depos' in descricao or 'sams' in descricao or 'assai' in descricao or 'pao_de' in descricao or 'lulu' in descricao or 'frutas' in descricao:
+    elif 'hfruti_dcm' in descricao or 'dom_atacadista' in descricao or 'rede_economia' in descricao or 'sam_s_club' in descricao or 'buffet' in descricao or 'hortifruti' in descricao or 'mercado_' in descricao or 'pao_de_açucar' in descricao or 'mercear' in descricao or 'hermon' in descricao or 'tempero' in descricao or 'alimento' in descricao or 'padar' in descricao or 'depos' in descricao or 'sams' in descricao or 'assai' in descricao or 'pao_de' in descricao or 'lulu' in descricao or 'frutas' in descricao:
         return 'alimentacao_casa'
     elif 'hdi' in descricao:
         return 'seguro_carro'
     elif 'centro_automotivo_pend' in descricao or 'uber' in descricao or 'pop_' in descricao or '99_tecnologia' in descricao or '99app' in descricao or 'estaciona' in descricao or 'posto' in descricao or 'conectcar' in descricao or 'tembici' in descricao or 'park' in descricao or 'barcas' in descricao or 'digipare' in descricao or 'auto_pos' in descricao:
         return 'transp(ub+gas+vel+ccr)'
-    elif 'relusa' in descricao or 'lojas_g' in descricao or 'roupas' in descricao or 'panna' in descricao or 'assb_comerci' in descricao or 'toy_boy' in descricao or 'kop' in descricao or 'happy' in descricao or 'presente' in descricao or 'daiso' in descricao or 'picadilly' in descricao or 'elister_joias' in descricao or 'nestle_brasil_ltda' in descricao or 'arte_dos_vinhos' in descricao or 'riachuelo' in descricao or 'americanas' in descricao or 'cell' in descricao or 'mundo_baby' in descricao or 'centauro' in descricao or 'cea' in descricao or 'renner' in descricao or 'pag*lojasrennersa' in descricao or 'iphone' in descricao or 'casa_e_vi' in descricao or 'relusa' in descricao or 'marketplace' in descricao or 'mr_cat' in descricao or 'cresci_e_perdi' in descricao or 'tonys_baby' in descricao or 'cirandinha_baby' in descricao or 'loungerie' in descricao or 'amazon' in descricao or 'shein' in descricao or 'calcad' in descricao or 'mercadolivre' in descricao or 'compras' in descricao:
+    elif 'pantys' in descricao or 'borelli_niteroi' in descricao or 'relusa' in descricao or 'lojas_g' in descricao or 'roupas' in descricao or 'panna' in descricao or 'assb_comerci' in descricao or 'toy_boy' in descricao or 'kop' in descricao or 'happy' in descricao or 'presente' in descricao or 'daiso' in descricao or 'picadilly' in descricao or 'elister_joias' in descricao or 'nestle_brasil_ltda' in descricao or 'arte_dos_vinhos' in descricao or 'riachuelo' in descricao or 'americanas' in descricao or 'cell' in descricao or 'mundo_baby' in descricao or 'centauro' in descricao or 'cea' in descricao or 'renner' in descricao or 'pag*lojasrennersa' in descricao or 'iphone' in descricao or 'casa_e_vi' in descricao or 'relusa' in descricao or 'marketplace' in descricao or 'mr_cat' in descricao or 'cresci_e_perdi' in descricao or 'tonys_baby' in descricao or 'cirandinha_baby' in descricao or 'loungerie' in descricao or 'amazon' in descricao or 'shein' in descricao or 'calcad' in descricao or 'mercadolivre' in descricao or 'compras' in descricao:
         return 'compras'
     elif 'produtos_globo' in descricao or 'ilha_mix' in descricao or 'melimais' in descricao or 'netflix' in descricao or 'spotify' in descricao or 'apple.com/bill' in descricao or 'apple_com/bill' in descricao or 'primebr' in descricao or 'doist' in descricao:
         return 'assinaturas'
     elif 'dermage' in descricao or 'drog' in descricao or 'labora' in descricao:
         return 'saude'
-    elif 'calhas' in descricao or 'first_class' in descricao or 'chaveiro' in descricao or 'leroy' in descricao or 'angela' in descricao or 'camica' in descricao or 'tok' in descricao or 'darkstore' in descricao or 'obras_casa' in descricao or 'eletrodomestico' in descricao:
+    elif 'midea' in descricao or 'calhas' in descricao or 'first_class' in descricao or 'chaveiro' in descricao or 'leroy' in descricao or 'angela' in descricao or 'camica' in descricao or 'tok' in descricao or 'darkstore' in descricao or 'obras_casa' in descricao or 'eletrodomestico' in descricao:
         return 'casa'
     elif 'infne' in descricao or 'cisco' in descricao or 'rdmedicine' in descricao or 'papelaria' in descricao or 'livraria' in descricao or 'colegio' in descricao or 'saraiva' in descricao or 'cursos' in descricao or 'curso' in descricao or 'escola' in descricao or 'faculdade' in descricao or 'universidade' in descricao:
         return 'educacao'
     elif 'funcional' in descricao:
         return 'esporte'
-    elif 'belarmino' in descricao or 'mcdonald' in descricao or 'burger' in descricao or 'subway' in descricao or 'kfc' in descricao or 'bobs' in descricao or 'outback' in descricao or 'pizza' in descricao or 'boulevard_go' in descricao or 'starbuc' in descricao or 'cookie' in descricao or 'cafe' in descricao or 'ex_touro' in descricao or 'beco_do_espa' in descricao or 'rockribs' in descricao or 'lanch' in descricao or 'suco' in descricao or 'megamatte' in descricao or 'chocolate' in descricao or 'rei_do_mate' in descricao or 'sunomono'  in descricao or 'drink' in descricao or 'convenie' in descricao or 'hot_dog' in descricao or 'rest' in descricao or 'food' in descricao or 'emporio' in descricao or 'bacio_di' in descricao or 'verdanna' in descricao or 'ifd' in descricao or 'comida_fora' in descricao or 'rio_arena' in descricao or 'beto_carrero' in descricao or 'ticket' in descricao or 'rio_Arena' in descricao or 'coffee' in descricao or 'casal_20' in descricao or 'panito' in descricao or 'sush' in descricao or 'sabor' in descricao or 'cheiro' in descricao or 'delicate' in descricao or 'art_cafe_lapa' in descricao:
+    elif 'cheirin_bao' in descricao or 'belarmino' in descricao or 'mcdonald' in descricao or 'burger' in descricao or 'subway' in descricao or 'kfc' in descricao or 'bobs' in descricao or 'outback' in descricao or 'pizza' in descricao or 'boulevard_go' in descricao or 'starbuc' in descricao or 'cookie' in descricao or 'cafe' in descricao or 'ex_touro' in descricao or 'beco_do_espa' in descricao or 'rockribs' in descricao or 'lanch' in descricao or 'suco' in descricao or 'megamatte' in descricao or 'chocolate' in descricao or 'rei_do_mate' in descricao or 'sunomono'  in descricao or 'drink' in descricao or 'convenie' in descricao or 'hot_dog' in descricao or 'rest' in descricao or 'food' in descricao or 'emporio' in descricao or 'bacio_di' in descricao or 'verdanna' in descricao or 'ifd' in descricao or 'comida_fora' in descricao or 'rio_arena' in descricao or 'beto_carrero' in descricao or 'ticket' in descricao or 'rio_Arena' in descricao or 'coffee' in descricao or 'casal_20' in descricao or 'panito' in descricao or 'sush' in descricao or 'sabor' in descricao or 'cheiro' in descricao or 'delicate' in descricao or 'art_cafe_lapa' in descricao:
         return 'diversao-lazer-comida'    
-    elif 'maboltt' in descricao or 'chic' in descricao or 'cabel' in descricao or 'sephora' in descricao or 'skin' in descricao or 'boticario' in descricao or '_beleza' in descricao:
+    elif 'natura___propria' in descricao or 'maboltt' in descricao or 'chic' in descricao or 'cabel' in descricao or 'sephora' in descricao or 'skin' in descricao or 'boticario' in descricao or '_beleza' in descricao:
         return 'beleza' 
     elif 'anuid' in descricao:
         return 'anuidade'
@@ -174,7 +174,7 @@ def obter_transacoes_fatura(headers, id_cartao, id_fatura, url_base):
 def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_base, hoje):
     transacoes_anteriores = {}
     
-    if 10 <= hoje.day <= 31:
+    if 10 <= hoje.day <= 17:
         id_fatura_anterior = str(int(id_fatura_atual) - 1)
         url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
         response = requests.get(url_transacoes, headers=headers)
@@ -196,8 +196,8 @@ def main():
         'Authorization': f'Basic {token}'
     }
 
-    id_itau_azul = '1654306'
-    id_sant_aa = '1654312'
+    id_itau_azul = '1704776'
+    id_sant_aa = '1704790'
 
     url_base = "https://api.organizze.com.br/rest/v2/"
     hoje = datetime.datetime.now()
@@ -272,7 +272,7 @@ def main():
         'casa': 500,
         'compras': 800,
         'diversao-lazer-comida': 500,
-        'educacao': 2150,
+        'educacao': 4250,
         'esporte': 50,
         'outros': 200,
         'saude': 300,
