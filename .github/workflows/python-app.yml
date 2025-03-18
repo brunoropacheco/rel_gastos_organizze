@@ -50,4 +50,4 @@ jobs:
         PASSWORD_GMAIL: ${{ secrets.PASSWORD_GMAIL }}
         EMAIL_GMAIL: ${{ env.EMAIL_GMAIL }}
       run: |
-        python analise_api_organizze.py
+        python src/analise_api_organizze.py
