@@ -47,12 +47,13 @@ def criar_grafico(df):
     # Mostra o gráfico
     plt.show()
 
-def enviar_email_mailtrap(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
-    sender = "Alerta Gastos <mailtrap@demomailtrap.com>"
+def enviar_email(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
+    sender = 'brunoropacheco@gmail.com'
     #receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com>"
     receiver = ['brunoropacheco@gmail.com']
+    password = os.getenv('PASSWORD_GMAIL')
     message = f"""\
-Subject: Hi Mailtrap
+Subject: Relatorio de Gastos de Cartoes
 To: {receiver}
 From: {sender}
 Content-Type: text/html
@@ -80,10 +81,10 @@ Content-Type: text/html
     #Total: R$ {total}
     print(message)
 
-    with smtplib.SMTP("live.smtp.mailtrap.io", 587) as server:
-        server.starttls()
-        server.login("api", os.getenv('API_MAILTRAP'))
-        server.sendmail(sender, receiver, message)
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()  # Inicia a conexão TLS
+        server.login(sender, password)  # Faz login com o e-mail e senha do aplicativo
+        server.sendmail(sender, receiver, message)  # Envia o e-mail
 
 def extrair_transacoes(arquivo):
     with open(arquivo, 'r', encoding='utf-8') as f:
@@ -128,7 +129,6 @@ def classificar_despesa(descricao):
     # Retornar a categoria encontrada ou 'outros' se não houver correspondência
     return result['categoria'] if result else 'outros'
     
-
 def obter_faturas(headers, id_cartao, url_base, start_date, end_date):
         url_faturas = f"{url_base}credit_cards/{id_cartao}/invoices?start_date={start_date}&end_date={end_date}"
         response = requests.get(url_faturas, headers=headers)
@@ -279,7 +279,7 @@ def main():
     df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
     total_limite = df_grouped['Limite'].sum()
     #imprimir o total no email
-    enviar_email_mailtrap(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
+    enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
 
 if __name__ == "__main__":
     main()
