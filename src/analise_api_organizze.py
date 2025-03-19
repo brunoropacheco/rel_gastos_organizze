@@ -5,6 +5,7 @@ import requests
 import smtplib
 import os
 import re
+import mysql.connector
 
 def ajustar_dataframe(df):
     # Ajusta os caracteres da coluna 'Descricao' e 'Tipo'
@@ -46,12 +47,13 @@ def criar_grafico(df):
     # Mostra o gráfico
     plt.show()
 
-def enviar_email_mailtrap(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
-    sender = "Alerta Gastos <mailtrap@demomailtrap.com>"
+def enviar_email(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
+    sender = 'brunoropacheco@gmail.com'
     #receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com>"
     receiver = ['brunoropacheco@gmail.com']
+    password = os.getenv('PASSWORD_GMAIL')
     message = f"""\
-Subject: Hi Mailtrap
+Subject: Relatorio de Gastos de Cartoes
 To: {receiver}
 From: {sender}
 Content-Type: text/html
@@ -79,10 +81,10 @@ Content-Type: text/html
     #Total: R$ {total}
     print(message)
 
-    with smtplib.SMTP("live.smtp.mailtrap.io", 587) as server:
-        server.starttls()
-        server.login("api", os.getenv('API_MAILTRAP'))
-        server.sendmail(sender, receiver, message)
+    with smtplib.SMTP("smtp.gmail.com", 587) as server:
+        server.starttls()  # Inicia a conexão TLS
+        server.login(sender, password)  # Faz login com o e-mail e senha do aplicativo
+        server.sendmail(sender, receiver, message)  # Envia o e-mail
 
 def extrair_transacoes(arquivo):
     with open(arquivo, 'r', encoding='utf-8') as f:
@@ -119,13 +121,13 @@ def classificar_despesa(descricao):
         return 'compras'
     elif 'produtos_globo' in descricao or 'ilha_mix' in descricao or 'melimais' in descricao or 'netflix' in descricao or 'spotify' in descricao or 'apple.com/bill' in descricao or 'apple_com/bill' in descricao or 'primebr' in descricao or 'doist' in descricao:
         return 'assinaturas'
-    elif 'dermage' in descricao or 'drog' in descricao or 'labora' in descricao:
+    elif 'saude' in descricao or 'dermage' in descricao or 'drog' in descricao or 'labora' in descricao:
         return 'saude'
     elif 'midea' in descricao or 'calhas' in descricao or 'first_class' in descricao or 'chaveiro' in descricao or 'leroy' in descricao or 'angela' in descricao or 'camica' in descricao or 'tok' in descricao or 'darkstore' in descricao or 'obras_casa' in descricao or 'eletrodomestico' in descricao:
         return 'casa'
-    elif 'infne' in descricao or 'cisco' in descricao or 'rdmedicine' in descricao or 'papelaria' in descricao or 'livraria' in descricao or 'colegio' in descricao or 'saraiva' in descricao or 'cursos' in descricao or 'curso' in descricao or 'escola' in descricao or 'faculdade' in descricao or 'universidade' in descricao:
+    elif 'dne' in descricao or 'educacao' in descricao or 'infne' in descricao or 'cisco' in descricao or 'rdmedicine' in descricao or 'papelaria' in descricao or 'livraria' in descricao or 'colegio' in descricao or 'saraiva' in descricao or 'cursos' in descricao or 'curso' in descricao or 'escola' in descricao or 'faculdade' in descricao or 'universidade' in descricao:
         return 'educacao'
-    elif 'funcional' in descricao:
+    elif 'academia' in descricao or 'atividade_fisica' in descricao or 'funcional' in descricao or 'esportes' in descricao:
         return 'esporte'
     elif 'cheirin_bao' in descricao or 'belarmino' in descricao or 'mcdonald' in descricao or 'burger' in descricao or 'subway' in descricao or 'kfc' in descricao or 'bobs' in descricao or 'outback' in descricao or 'pizza' in descricao or 'boulevard_go' in descricao or 'starbuc' in descricao or 'cookie' in descricao or 'cafe' in descricao or 'ex_touro' in descricao or 'beco_do_espa' in descricao or 'rockribs' in descricao or 'lanch' in descricao or 'suco' in descricao or 'megamatte' in descricao or 'chocolate' in descricao or 'rei_do_mate' in descricao or 'sunomono'  in descricao or 'drink' in descricao or 'convenie' in descricao or 'hot_dog' in descricao or 'rest' in descricao or 'food' in descricao or 'emporio' in descricao or 'bacio_di' in descricao or 'verdanna' in descricao or 'ifd' in descricao or 'comida_fora' in descricao or 'rio_arena' in descricao or 'beto_carrero' in descricao or 'ticket' in descricao or 'rio_Arena' in descricao or 'coffee' in descricao or 'casal_20' in descricao or 'panito' in descricao or 'sush' in descricao or 'sabor' in descricao or 'cheiro' in descricao or 'delicate' in descricao or 'art_cafe_lapa' in descricao:
         return 'diversao-lazer-comida'    
@@ -135,7 +137,7 @@ def classificar_despesa(descricao):
         return 'anuidade'
     else:
         return 'outros'
-
+    
 def obter_faturas(headers, id_cartao, url_base, start_date, end_date):
         url_faturas = f"{url_base}credit_cards/{id_cartao}/invoices?start_date={start_date}&end_date={end_date}"
         response = requests.get(url_faturas, headers=headers)
@@ -174,7 +176,7 @@ def obter_transacoes_fatura(headers, id_cartao, id_fatura, url_base):
 def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_base, hoje):
     transacoes_anteriores = {}
     
-    if 10 <= hoje.day <= 17:
+    if 10 <= hoje.day <= 19:
         id_fatura_anterior = str(int(id_fatura_atual) - 1)
         url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
         response = requests.get(url_transacoes, headers=headers)
@@ -286,7 +288,7 @@ def main():
     df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
     total_limite = df_grouped['Limite'].sum()
     #imprimir o total no email
-    enviar_email_mailtrap(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
+    enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
 
 if __name__ == "__main__":
     main()
