@@ -1,37 +1,17 @@
-# Análise de API Organizze
+# Relatório de Gastos de Cartão de Crédito
 
-Este projeto realiza a análise de transações financeiras utilizando a API do Organizze. Ele classifica as despesas em categorias, gera gráficos e envia um e-mail com um resumo das despesas.
+Este projeto realiza a análise de transações financeiras dos seus cartões de crédito associados ao APP Organizze utilizando sua API. Ele classifica as despesas em categorias e envia um e-mail com um resumo das despesas.
 
 ## Estrutura do Projeto
 
-- 
-
-analise_api_organizze.py
-
-: Script principal que realiza a análise das transações.
-- 
-
-requirements.txt
-
-: Lista de dependências do projeto.
-- 
-
-.gitignore
-
-: Arquivo que especifica quais arquivos e diretórios devem ser ignorados pelo Git.
-- 
-
-README.md
-
-: Este arquivo.
+- **`/src/analise_api_organizze.py`**: Script principal que realiza a análise das transações.
+- **`requirements.txt`**: Lista de dependências do projeto.
+- **`.gitignore`**: Arquivo que especifica quais arquivos e diretórios devem ser ignorados pelo Git.
+- **`README.md`**: Este arquivo.
 
 ## Dependências
 
-As dependências do projeto estão listadas no arquivo 
-
-requirements.txt
-
-. Para instalá-las, execute:
+As dependências do projeto estão listadas no arquivo `requirements.txt`. Para instalá-las, execute:
 
 ```sh
 pip install -r requirements.txt
@@ -49,7 +29,7 @@ Antes de executar o script, você precisa definir algumas variáveis de ambiente
 Para executar o script, utilize o seguinte comando:
 
 ```sh
-python analise_api_organizze.py
+python src/analise_api_organizze.py
 ```
 
 ## Funcionalidades
@@ -71,7 +51,7 @@ O script realiza as seguintes etapas:
 
 ## Contato
 
-Para mais informações, entre em contato com [seu email].
+Para mais informações, entre em contato com brunoropacheco@gmail.com.
 
 ---
 
