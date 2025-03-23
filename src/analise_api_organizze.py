@@ -6,6 +6,28 @@ import smtplib
 import os
 import re
 
+def obter_nome_categoria(id_categoria):
+    """
+    Obtém o nome da categoria com base no ID da categoria.
+    Argumentos:
+        id_categoria (int): O ID da categoria.
+    Retorna:
+        str: O nome da categoria correspondente ao ID.
+    """
+
+    token = os.getenv('TOKEN_ORGANIZZE')
+    headers = {
+        'Authorization': f'Basic {token}'
+    }
+    url_categorias = "https://api.organizze.com.br/rest/v2/categories"
+    response = requests.get(url_categorias, headers=headers)
+    if response.status_code == 200:
+        categorias = response.json()
+        
+    for categoria in categorias:
+        if categoria['id'] == id_categoria:
+            return categoria['name']
+
 def ajustar_dataframe(df):
     """
     Ajusta e processa um DataFrame contendo dados de transações financeiras.
@@ -32,7 +54,8 @@ def ajustar_dataframe(df):
     df = df.drop(columns=['amount_cents'])
     
     # Aplica a função para criar a nova coluna 'Categoria'
-    df['Categoria'] = df['description'].apply(classificar_despesa)
+    df['Categoria'] = df['category_id'].apply(obter_nome_categoria)
+    df = df.drop(columns=['category_id'])
 
     # Adiciona transações coringa para categorias sem valor
     categorias = ['viagem', 'alimentacao_casa', 'seguro_carro', 'transp(ub+gas+vel+ccr)', 'compras', 'assinaturas', 'saude', 'casa', 'educacao', 'esporte', 'diversao-lazer-comida', 'beleza', 'anuidade', 'outros']
@@ -142,52 +165,6 @@ def ajusta_caracteres(coluna):
         coluna = coluna.str.replace(k, v)
     return coluna.str.lower()
 
-def classificar_despesa(descricao):
-    """
-    Classifica uma despesa com base em sua descrição.
-
-    A função analisa a descrição fornecida e retorna uma categoria correspondente
-    à despesa, como 'viagem', 'alimentacao_casa', 'seguro_carro', entre outras.
-    Caso a descrição não corresponda a nenhuma das categorias predefinidas, a
-    função retorna 'outros'.
-
-    Parâmetros:
-        descricao (str): A descrição da despesa.
-
-    Retorna:
-        str: A categoria da despesa.
-    """
-    # Crie uma função para classificar as despesas com base nos termos
-    # Lógica de classificação
-    if 'movida' in descricao or 'rentcars' in descricao or 'melia' in descricao or 'latam' in descricao or 'iberia' in descricao or 'unidas' in descricao or 'airbnb' in descricao or 'azul' in descricao or 'smiles' in descricao or 'gol' in descricao or 'city_hall' in descricao or 'foco_aluguel' in descricao or 'tam_lin' in descricao:
-        return 'viagem'
-    elif 'hfruti_dcm' in descricao or 'dom_atacadista' in descricao or 'rede_economia' in descricao or 'sam_s_club' in descricao or 'buffet' in descricao or 'hortifruti' in descricao or 'mercado_' in descricao or 'pao_de_açucar' in descricao or 'mercear' in descricao or 'hermon' in descricao or 'tempero' in descricao or 'alimento' in descricao or 'padar' in descricao or 'depos' in descricao or 'sams' in descricao or 'assai' in descricao or 'pao_de' in descricao or 'lulu' in descricao or 'frutas' in descricao:
-        return 'alimentacao_casa'
-    elif 'hdi' in descricao:
-        return 'seguro_carro'
-    elif 'centro_automotivo_pend' in descricao or 'uber' in descricao or 'pop_' in descricao or '99_tecnologia' in descricao or '99app' in descricao or 'estaciona' in descricao or 'posto' in descricao or 'conectcar' in descricao or 'tembici' in descricao or 'park' in descricao or 'barcas' in descricao or 'digipare' in descricao or 'auto_pos' in descricao:
-        return 'transp(ub+gas+vel+ccr)'
-    elif 'pantys' in descricao or 'borelli_niteroi' in descricao or 'relusa' in descricao or 'lojas_g' in descricao or 'roupas' in descricao or 'panna' in descricao or 'assb_comerci' in descricao or 'toy_boy' in descricao or 'kop' in descricao or 'happy' in descricao or 'presente' in descricao or 'daiso' in descricao or 'picadilly' in descricao or 'elister_joias' in descricao or 'nestle_brasil_ltda' in descricao or 'arte_dos_vinhos' in descricao or 'riachuelo' in descricao or 'americanas' in descricao or 'cell' in descricao or 'mundo_baby' in descricao or 'centauro' in descricao or 'cea' in descricao or 'renner' in descricao or 'pag*lojasrennersa' in descricao or 'iphone' in descricao or 'casa_e_vi' in descricao or 'relusa' in descricao or 'marketplace' in descricao or 'mr_cat' in descricao or 'cresci_e_perdi' in descricao or 'tonys_baby' in descricao or 'cirandinha_baby' in descricao or 'loungerie' in descricao or 'amazon' in descricao or 'shein' in descricao or 'calcad' in descricao or 'mercadolivre' in descricao or 'compras' in descricao:
-        return 'compras'
-    elif 'produtos_globo' in descricao or 'ilha_mix' in descricao or 'melimais' in descricao or 'netflix' in descricao or 'spotify' in descricao or 'apple.com/bill' in descricao or 'apple_com/bill' in descricao or 'primebr' in descricao or 'doist' in descricao:
-        return 'assinaturas'
-    elif 'saude' in descricao or 'dermage' in descricao or 'drog' in descricao or 'labora' in descricao:
-        return 'saude'
-    elif 'midea' in descricao or 'calhas' in descricao or 'first_class' in descricao or 'chaveiro' in descricao or 'leroy' in descricao or 'angela' in descricao or 'camica' in descricao or 'tok' in descricao or 'darkstore' in descricao or 'obras_casa' in descricao or 'eletrodomestico' in descricao:
-        return 'casa'
-    elif 'dne' in descricao or 'educacao' in descricao or 'infne' in descricao or 'cisco' in descricao or 'rdmedicine' in descricao or 'papelaria' in descricao or 'livraria' in descricao or 'colegio' in descricao or 'saraiva' in descricao or 'cursos' in descricao or 'curso' in descricao or 'escola' in descricao or 'faculdade' in descricao or 'universidade' in descricao:
-        return 'educacao'
-    elif 'academia' in descricao or 'atividade_fisica' in descricao or 'funcional' in descricao or 'esportes' in descricao:
-        return 'esporte'
-    elif 'cheirin_bao' in descricao or 'belarmino' in descricao or 'mcdonald' in descricao or 'burger' in descricao or 'subway' in descricao or 'kfc' in descricao or 'bobs' in descricao or 'outback' in descricao or 'pizza' in descricao or 'boulevard_go' in descricao or 'starbuc' in descricao or 'cookie' in descricao or 'cafe' in descricao or 'ex_touro' in descricao or 'beco_do_espa' in descricao or 'rockribs' in descricao or 'lanch' in descricao or 'suco' in descricao or 'megamatte' in descricao or 'chocolate' in descricao or 'rei_do_mate' in descricao or 'sunomono'  in descricao or 'drink' in descricao or 'convenie' in descricao or 'hot_dog' in descricao or 'rest' in descricao or 'food' in descricao or 'emporio' in descricao or 'bacio_di' in descricao or 'verdanna' in descricao or 'ifd' in descricao or 'comida_fora' in descricao or 'rio_arena' in descricao or 'beto_carrero' in descricao or 'ticket' in descricao or 'rio_Arena' in descricao or 'coffee' in descricao or 'casal_20' in descricao or 'panito' in descricao or 'sush' in descricao or 'sabor' in descricao or 'cheiro' in descricao or 'delicate' in descricao or 'art_cafe_lapa' in descricao:
-        return 'diversao-lazer-comida'    
-    elif 'natura___propria' in descricao or 'maboltt' in descricao or 'chic' in descricao or 'cabel' in descricao or 'sephora' in descricao or 'skin' in descricao or 'boticario' in descricao or '_beleza' in descricao:
-        return 'beleza' 
-    elif 'anuid' in descricao:
-        return 'anuidade'
-    else:
-        return 'outros'
-    
 def obter_faturas(headers, id_cartao, url_base, start_date, end_date):
     """
     Obtém as faturas de um cartão de crédito em um intervalo de datas específico.
@@ -304,6 +281,23 @@ def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_ba
     
     return transacoes_anteriores
 
+def obter_ids_cartoes(headers, url_base):
+    """
+    Obtém os IDs das contas de cartões de crédito a partir da API Organizze.
+    Args:
+        headers (dict): Cabeçalhos HTTP necessários para autenticação na API.
+    Returns:
+        dict: Um dicionário contendo os IDs das contas de cartões de crédito.
+    Raises:
+        HTTPError: Exceção levantada caso a resposta da API retorne um código de status diferente de 200.
+    """
+    url_cartoes = f"{url_base}credit_cards"
+    response = requests.get(url_cartoes, headers=headers)
+    if response.status_code == 200:
+        return {cartao['name']: cartao['id'] for cartao in response.json()}
+    else:
+        response.raise_for_status()
+
 def main():
     """
     Função principal para análise de transações e geração de relatórios financeiros.
@@ -332,10 +326,16 @@ def main():
         'Authorization': f'Basic {token}'
     }
 
-    id_itau_azul = '1704776'
-    id_sant_aa = '1704790'
-
     url_base = "https://api.organizze.com.br/rest/v2/"
+
+    ids_cartoes = obter_ids_cartoes(headers, url_base)
+    
+    #print(ids_cartoes)
+
+    id_itau_azul = ids_cartoes['Cartao_Itau_Azul']
+    id_sant_aa = ids_cartoes['Cartao_Santander_AA']
+
+    
     hoje = datetime.datetime.now()
     start_date = (hoje - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
     end_date = (hoje + datetime.timedelta(days=90)).strftime('%Y-%m-%d')    
@@ -369,14 +369,16 @@ def main():
     transacoes_itau = transacoes_itau['transactions']
     transacoes_santander = transacoes_santander['transactions']
 
+    #print(transacoes_itau)
+
     for transacao in transacoes_itau:
-        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment']
+        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment', 'category_id']
         for key in list(transacao.keys()):
             if key not in keys_to_keep:
                 del transacao[key]
 
     for transacao in transacoes_santander:
-        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment']
+        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment', 'category_id']
         for key in list(transacao.keys()):
             if key not in keys_to_keep:
                 del transacao[key]
@@ -400,7 +402,7 @@ def main():
     # Preencher valores zerados com 0
     df_grouped['Valor'] = df_grouped['Valor'].abs()
     limites = {
-        'alimentacao_casa': 300,
+        'alimentacao_casa': 600,
         'anuidade': 236,
         'assinaturas': 140,
         'beleza': 200,
@@ -411,12 +413,11 @@ def main():
         'esporte': 50,
         'outros': 200,
         'saude': 300,
-        'seguro_carro': 680,
-        'transp(ub+gas+vel+ccr)': 1200,
-        'viagem': 2000
+        'seguro_carro': 403,
+        'transp(ub+gas+vel+ccr)': 1400,
+        'viagem': 700
     }
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
-    #df_grouped['Limite'] = df_grouped['Limite'].replace(0, np.nan)
     #coluna porcentagem
     df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
     total_limite = df_grouped['Limite'].sum()
