@@ -84,6 +84,7 @@ def enviar_email(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_pa
     Retorna:
         None
     """
+    # Configurações do e-mail
     sender = 'brunoropacheco@gmail.com'
     #receiver = "Gmail Bruno <brunoropacheco@gmail.com>;<bruno.rpacheco@transpetro.com.br>;<mariliaampereira@gmail.com>"
     receiver = ['brunoropacheco@gmail.com']
@@ -263,21 +264,20 @@ def obter_transacoes_fatura_anterior(headers, id_cartao, id_fatura_atual, url_ba
     Raises:
         HTTPError: Caso a requisição à API retorne um código de status diferente de 200.
     """
-    transacoes_anteriores = {}
+    transacoes_anteriores = {}    
     
-    if 10 <= hoje.day <= 19:
-        id_fatura_anterior = str(int(id_fatura_atual) - 1)
-        url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
-        response = requests.get(url_transacoes, headers=headers)
+    id_fatura_anterior = str(int(id_fatura_atual) - 1)
+    url_transacoes = f"{url_base}credit_cards/{id_cartao}/invoices/{id_fatura_anterior}"
+    response = requests.get(url_transacoes, headers=headers)
+    
+    if response.status_code == 200:
+        transacoes = response.json()['transactions']
         
-        if response.status_code == 200:
-            transacoes = response.json()['transactions']
-            
-            for transacao in transacoes:
-                if transacao['total_installments'] - transacao['installment'] > 0:
-                    transacoes_anteriores[transacao['id']] = transacao
-        else:
-            response.raise_for_status()
+        for transacao in transacoes:
+            if transacao['total_installments'] - transacao['installment'] > 0:
+                transacoes_anteriores[transacao['id']] = transacao
+    else:
+        response.raise_for_status()
     
     return transacoes_anteriores
 
@@ -331,7 +331,8 @@ def main():
     ids_cartoes = obter_ids_cartoes(headers, url_base)
     
     #print(ids_cartoes)
-
+    # Definindo os IDs dos cartoes de credito com base no que veio da API. Estes nomes devem ser os mesmos que foram
+    # cadastrados no Organizze
     id_itau_azul = ids_cartoes['Cartao_Itau_Azul']
     id_sant_aa = ids_cartoes['Cartao_Santander_AA']
 
@@ -346,47 +347,58 @@ def main():
     fatura_atual_itau = verificar_fatura(faturas_itau, 10)
     fatura_atual_santander = verificar_fatura(faturas_santander, 10)
 
-    id_fatura_itau = fatura_atual_itau['id']
-    id_fatura_santander = fatura_atual_santander['id']
+    id_faturaatual_itau = fatura_atual_itau['id']
+    id_faturaatual_santander = fatura_atual_santander['id']
     
-    transacoes_itau = obter_transacoes_fatura(headers, id_itau_azul, id_fatura_itau, url_base)
-    transacoes_santander = obter_transacoes_fatura(headers, id_sant_aa, id_fatura_santander, url_base)
+    transacoes_itau = obter_transacoes_fatura(headers, id_itau_azul, id_faturaatual_itau, url_base)
+    transacoes_santander = obter_transacoes_fatura(headers, id_sant_aa, id_faturaatual_santander, url_base)
 
 
     # por conta do problema do open finance que nao esta trazendo as compras parceladas da fatura anterior automaticamente
     # vamos buscar as transacoes da fatura anterior e somar 1 ao campo installment
-    transacoes_anteriores_itau = obter_transacoes_fatura_anterior(headers, id_itau_azul, id_fatura_itau, url_base, hoje)
-    transacoes_anteriores_santander = obter_transacoes_fatura_anterior(headers, id_sant_aa, id_fatura_santander, url_base, hoje)
+    # somente as compras parceladas que sao trazidas para estas bases
+    transacoes_anteriores_itau = obter_transacoes_fatura_anterior(headers, id_itau_azul, id_faturaatual_itau, url_base, hoje)
+    transacoes_anteriores_santander = obter_transacoes_fatura_anterior(headers, id_sant_aa, id_faturaatual_santander, url_base, hoje)
     
     
     #soma 1 ao campo installment dessas transacoes que sao da fatura anterior
     transacoes_anteriores_itau = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_itau.items()}
     transacoes_anteriores_santander = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_santander.items()}
 
+    #comparar as transacoes da fatura atual com as transacoes da fatura anterior para evitar duplicidade
+    #a comparacao vai ser feita pelo campo amount_cents e date
+    #caso a transacao da fatura anterior tenha o mesmo amount_cents e date da transacao da fatura atual, ela sera apagada do dicionario transacoes_anteriores
+    transacoes_anteriores_itau = {k: v for k, v in transacoes_anteriores_itau.items() if not any(
+        v['amount_cents'] == transacao['amount_cents'] and v['date'] == transacao['date']
+        for transacao in transacoes_itau['transactions']
+    )}
+    
+    transacoes_anteriores_santander = {k: v for k, v in transacoes_anteriores_santander.items() if not any(
+        v['amount_cents'] == transacao['amount_cents'] and v['date'] == transacao['date']
+        for transacao in transacoes_santander['transactions']
+    )}
+    
+    # Adiciona as transações da fatura anterior ao dicionário de transações atuais
     transacoes_itau['transactions'] += list(transacoes_anteriores_itau.values())
     transacoes_santander['transactions'] += list(transacoes_anteriores_santander.values())
 
     transacoes_itau = transacoes_itau['transactions']
     transacoes_santander = transacoes_santander['transactions']
+        
+    #concatenar as duas listas de transacoes
+    transacoes = transacoes_itau + transacoes_santander  
 
-    #print(transacoes_itau)
-
-    for transacao in transacoes_itau:
+    #deleta as chaves que nao sao necessarias
+    for transacao in transacoes:
         keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment', 'category_id']
         for key in list(transacao.keys()):
             if key not in keys_to_keep:
                 del transacao[key]
-
-    for transacao in transacoes_santander:
-        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment', 'category_id']
-        for key in list(transacao.keys()):
-            if key not in keys_to_keep:
-                del transacao[key]
-
-    df_itau = pd.DataFrame(transacoes_itau)
-    df_santander = pd.DataFrame(transacoes_santander)
-
-    df = pd.concat([df_itau, df_santander], ignore_index=True)
+                    
+    #criar um dataframe com as transacoes
+    df = pd.DataFrame(transacoes)
+    
+    #ajustar formatacao do dataframe
     df = ajustar_dataframe(df)
 
     #criar uma variavel que soma a quantidade de transacoes parceladas - essa conta e feita somando a quantidade de transacoes que tem as colunas installment e total_installments diferentes
@@ -397,14 +409,20 @@ def main():
     df['Ultima_parcela'] = ((df['installment'] == df['total_installments']) & (df['total_installments'] > 1)).astype(int)
     qtde_ultima_parcela = df['Ultima_parcela'].sum()
     
+    #cria um csv com as transacoes
     df.to_csv('transacoes_ajustado.csv')
+    
+    # Agrupar por categoria e somar os valores
     df_grouped = df.groupby('Categoria')['Valor'].sum().reset_index()
+    
     # Preencher valores zerados com 0
     df_grouped['Valor'] = df_grouped['Valor'].abs()
+    
+    #determina limites de gastos por categoria
     limites = {
-        'alimentacao_casa': 600,
+        'alimentacao_casa': 800,
         'anuidade': 236,
-        'assinaturas': 140,
+        'assinaturas': 450,
         'beleza': 200,
         'casa': 500,
         'compras': 800,
@@ -418,10 +436,14 @@ def main():
         'viagem': 700
     }
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
-    #coluna porcentagem
+    
+    #cria coluna porcentagem
     df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
+    
+    #soma o total de gastos
     total_limite = df_grouped['Limite'].sum()
-    #imprimir o total no email
+    
+    #chama a funcao de enviar email com uma tabela com os gastos separados por categoria, com porcentagel, limite e total gasto
     enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
 
 if __name__ == "__main__":
