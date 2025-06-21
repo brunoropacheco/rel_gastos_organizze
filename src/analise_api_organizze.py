@@ -1,5 +1,4 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import datetime
 import requests
 import smtplib
@@ -338,11 +337,12 @@ def main():
 
     
     hoje = datetime.datetime.now()
-    start_date = (hoje - datetime.timedelta(days=90)).strftime('%Y-%m-%d')
-    end_date = (hoje + datetime.timedelta(days=90)).strftime('%Y-%m-%d')    
+    start_date = (hoje - datetime.timedelta(days=365)).strftime('%Y-%m-%d')
+    end_date = (hoje + datetime.timedelta(days=60)).strftime('%Y-%m-%d')    
 
     faturas_itau = obter_faturas(headers, id_itau_azul, url_base, start_date, end_date)
     faturas_santander = obter_faturas(headers, id_sant_aa, url_base, start_date, end_date)
+    
 
     fatura_atual_itau = verificar_fatura(faturas_itau, 10)
     fatura_atual_santander = verificar_fatura(faturas_santander, 10)
