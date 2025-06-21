@@ -4,6 +4,7 @@ import requests
 import smtplib
 import os
 import re
+from dateutil.relativedelta import relativedelta
 
 def obter_nome_categoria(id_categoria):
     """
@@ -341,18 +342,67 @@ def main():
     end_date = (hoje + datetime.timedelta(days=60)).strftime('%Y-%m-%d')    
 
     faturas_itau = obter_faturas(headers, id_itau_azul, url_base, start_date, end_date)
-    faturas_santander = obter_faturas(headers, id_sant_aa, url_base, start_date, end_date)
-    
+    faturas_santander = obter_faturas(headers, id_sant_aa, url_base, start_date, end_date) 
 
     fatura_atual_itau = verificar_fatura(faturas_itau, 10)
     fatura_atual_santander = verificar_fatura(faturas_santander, 10)
 
     id_faturaatual_itau = fatura_atual_itau['id']
-    id_faturaatual_santander = fatura_atual_santander['id']
-    
+    id_faturaatual_santander = fatura_atual_santander['id'] 
+
     transacoes_itau = obter_transacoes_fatura(headers, id_itau_azul, id_faturaatual_itau, url_base)
     transacoes_santander = obter_transacoes_fatura(headers, id_sant_aa, id_faturaatual_santander, url_base)
 
+    df_transacoes_atuais = pd.concat([
+    pd.DataFrame(transacoes_itau['transactions']),
+    pd.DataFrame(transacoes_santander['transactions'])
+    ], ignore_index=True)
+
+    transacoes_passadas = []
+
+    # Data da fatura atual (exemplo usando fatura atual do Itaú, ajuste se quiser considerar as duas)
+    data_fatura_atual_itau = pd.to_datetime(fatura_atual_itau['date'])
+    data_fatura_atual_santander = pd.to_datetime(fatura_atual_santander['date'])
+
+    for fatura in faturas_itau:
+        if fatura['id'] == id_faturaatual_itau:
+            continue  # pula a fatura atual
+        transacoes = obter_transacoes_fatura(headers, id_itau_azul, fatura['id'], url_base)
+        if 'transactions' in transacoes:
+            for t in transacoes['transactions']:
+                total_parcelas = t.get('total_installments', 1)
+                if total_parcelas > 1 and total_parcelas != t.get('installment'):
+                    data_compra = pd.to_datetime(t['date'])
+                    data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
+                    if data_compra <= data_fatura_atual_itau <= data_ultima_parcela:
+                        transacoes_passadas.append(t)
+
+    for fatura in faturas_santander:
+        if fatura['id'] == id_faturaatual_santander:
+            continue  # pula a fatura atual
+        transacoes = obter_transacoes_fatura(headers, id_sant_aa, fatura['id'], url_base)
+        if 'transactions' in transacoes:
+            for t in transacoes['transactions']:
+                total_parcelas = t.get('total_installments', 1)
+                if total_parcelas > 1 and total_parcelas != t.get('installment'):
+                    data_compra = pd.to_datetime(t['date'])
+                    data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
+                    if data_compra <= data_fatura_atual_santander <= data_ultima_parcela:
+                        transacoes_passadas.append(t)
+
+    df_transacoes_passadas = pd.DataFrame(transacoes_passadas)
+    df_transacoes_passadas.to_csv('transacoes_passadas.csv', index=False)
+
+    df_transacoes = pd.concat([df_transacoes_atuais, df_transacoes_passadas], ignore_index=True)
+
+    # Remove duplicatas considerando descricao, data e amount_cents, mantendo o maior installment
+    df_transacoes = df_transacoes.sort_values('installment').drop_duplicates(
+        subset=['description', 'date', 'amount_cents'], keep='last'
+    )
+
+    df_transacoes.to_csv('transacoes.csv', index=False)    
+   
+    '''
 
     # por conta do problema do open finance que nao esta trazendo as compras parceladas da fatura anterior automaticamente
     # vamos buscar as transacoes da fatura anterior e somar 1 ao campo installment
@@ -445,6 +495,6 @@ def main():
     
     #chama a funcao de enviar email com uma tabela com os gastos separados por categoria, com porcentagel, limite e total gasto
     enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
-
+    '''
 if __name__ == "__main__":
     main()
