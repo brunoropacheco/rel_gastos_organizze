@@ -4,6 +4,7 @@ import requests
 import smtplib
 import os
 import re
+from dateutil.relativedelta import relativedelta
 
 def obter_nome_categoria(id_categoria):
     """
@@ -336,89 +337,108 @@ def main():
     id_sant_aa = ids_cartoes['Cartao_Santander_AA']
 
     
+    # Define intervalo de datas para buscar faturas
     hoje = datetime.datetime.now()
     start_date = (hoje - datetime.timedelta(days=365)).strftime('%Y-%m-%d')
     end_date = (hoje + datetime.timedelta(days=60)).strftime('%Y-%m-%d')    
 
+    # Busca faturas dos dois cartões no período
     faturas_itau = obter_faturas(headers, id_itau_azul, url_base, start_date, end_date)
-    faturas_santander = obter_faturas(headers, id_sant_aa, url_base, start_date, end_date)
-    
+    faturas_santander = obter_faturas(headers, id_sant_aa, url_base, start_date, end_date) 
 
+    # Identifica fatura atual de cada cartão
     fatura_atual_itau = verificar_fatura(faturas_itau, 10)
     fatura_atual_santander = verificar_fatura(faturas_santander, 10)
 
     id_faturaatual_itau = fatura_atual_itau['id']
-    id_faturaatual_santander = fatura_atual_santander['id']
-    
+    id_faturaatual_santander = fatura_atual_santander['id'] 
+
+    # Busca transações da fatura atual de cada cartão
     transacoes_itau = obter_transacoes_fatura(headers, id_itau_azul, id_faturaatual_itau, url_base)
     transacoes_santander = obter_transacoes_fatura(headers, id_sant_aa, id_faturaatual_santander, url_base)
 
+    transacoes_passadas = []
 
-    # por conta do problema do open finance que nao esta trazendo as compras parceladas da fatura anterior automaticamente
-    # vamos buscar as transacoes da fatura anterior e somar 1 ao campo installment
-    # somente as compras parceladas que sao trazidas para estas bases
-    transacoes_anteriores_itau = obter_transacoes_fatura_anterior(headers, id_itau_azul, id_faturaatual_itau, url_base, hoje)
-    transacoes_anteriores_santander = obter_transacoes_fatura_anterior(headers, id_sant_aa, id_faturaatual_santander, url_base, hoje)
-    
-    
-    #soma 1 ao campo installment dessas transacoes que sao da fatura anterior
-    transacoes_anteriores_itau = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_itau.items()}
-    transacoes_anteriores_santander = {k: {**v, 'installment': v['installment'] + 1} for k, v in transacoes_anteriores_santander.items()}
+    # Converte datas de vencimento das faturas atuais para datetime
+    data_fatura_atual_itau = pd.to_datetime(fatura_atual_itau['date'])
+    data_fatura_atual_santander = pd.to_datetime(fatura_atual_santander['date'])
 
-    #comparar as transacoes da fatura atual com as transacoes da fatura anterior para evitar duplicidade
-    #a comparacao vai ser feita pelo campo amount_cents e date
-    #caso a transacao da fatura anterior tenha o mesmo amount_cents e date da transacao da fatura atual, ela sera apagada do dicionario transacoes_anteriores
-    transacoes_anteriores_itau = {k: v for k, v in transacoes_anteriores_itau.items() if not any(
-        v['amount_cents'] == transacao['amount_cents'] and v['date'] == transacao['date']
-        for transacao in transacoes_itau['transactions']
-    )}
-    
-    transacoes_anteriores_santander = {k: v for k, v in transacoes_anteriores_santander.items() if not any(
-        v['amount_cents'] == transacao['amount_cents'] and v['date'] == transacao['date']
-        for transacao in transacoes_santander['transactions']
-    )}
-    
-    # Adiciona as transações da fatura anterior ao dicionário de transações atuais
-    transacoes_itau['transactions'] += list(transacoes_anteriores_itau.values())
-    transacoes_santander['transactions'] += list(transacoes_anteriores_santander.values())
+    # Busca transações parceladas de faturas anteriores do Itaú que podem cair na fatura atual
+    for fatura in faturas_itau:
+        if fatura['id'] == id_faturaatual_itau:
+            continue  # pula a fatura atual
+        transacoes = obter_transacoes_fatura(headers, id_itau_azul, fatura['id'], url_base)
+        if 'transactions' in transacoes:
+            for t in transacoes['transactions']:
+                total_parcelas = t.get('total_installments', 1)
+                # Só considera transações parceladas e que não estão na última parcela
+                if total_parcelas > 1 and total_parcelas != t.get('installment'):
+                    data_compra = pd.to_datetime(t['date'])
+                    data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
+                    # Só adiciona se alguma parcela pode cair na fatura atual
+                    if data_compra <= data_fatura_atual_itau <= data_ultima_parcela:
+                        transacoes_passadas.append(t)
 
-    transacoes_itau = transacoes_itau['transactions']
-    transacoes_santander = transacoes_santander['transactions']
-        
-    #concatenar as duas listas de transacoes
-    transacoes = transacoes_itau + transacoes_santander  
+    # Busca transações parceladas de faturas anteriores do Santander que podem cair na fatura atual
+    for fatura in faturas_santander:
+        if fatura['id'] == id_faturaatual_santander:
+            continue  # pula a fatura atual
+        transacoes = obter_transacoes_fatura(headers, id_sant_aa, fatura['id'], url_base)
+        if 'transactions' in transacoes:
+            for t in transacoes['transactions']:
+                total_parcelas = t.get('total_installments', 1)
+                if total_parcelas > 1 and total_parcelas != t.get('installment'):
+                    data_compra = pd.to_datetime(t['date'])
+                    data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
+                    if data_compra <= data_fatura_atual_santander <= data_ultima_parcela:
+                        transacoes_passadas.append(t)
 
-    #deleta as chaves que nao sao necessarias
-    for transacao in transacoes:
-        keys_to_keep = ['description', 'date', 'amount_cents', 'total_installments', 'installment', 'category_id']
-        for key in list(transacao.keys()):
-            if key not in keys_to_keep:
-                del transacao[key]
-                    
-    #criar um dataframe com as transacoes
-    df = pd.DataFrame(transacoes)
+    # Junta transações atuais dos dois cartões em um único DataFrame
+    df_transacoes_atuais = pd.concat([
+        pd.DataFrame(transacoes_itau['transactions']),
+        pd.DataFrame(transacoes_santander['transactions'])
+    ], ignore_index=True)
+
+    # Salva transações atuais em CSV
+    df_transacoes_atuais.to_csv('transacoes_atuais.csv', index=False)
+
+    # Cria DataFrame com transações passadas que podem cair na fatura atual
+    df_transacoes_passadas = pd.DataFrame(transacoes_passadas)
+    df_transacoes_passadas.to_csv('transacoes_passadas.csv', index=False)
+
+    # Junta transações atuais e passadas
+    df_transacoes = pd.concat([df_transacoes_atuais, df_transacoes_passadas], ignore_index=True)
+
+    # Remove duplicatas considerando descricao, data e amount_cents, mantendo o maior installment
+    df_transacoes = df_transacoes.sort_values('installment').drop_duplicates(
+        subset=['description', 'date', 'amount_cents'], keep='last'
+    )    
     
-    #ajustar formatacao do dataframe
-    df = ajustar_dataframe(df)
-
-    #criar uma variavel que soma a quantidade de transacoes parceladas - essa conta e feita somando a quantidade de transacoes que tem as colunas installment e total_installments diferentes
+    # Ajusta e categoriza o DataFrame para análise
+    df = ajustar_dataframe(df_transacoes)
+    
+    # Cria coluna para identificar transações parceladas
     df['Parcelado'] = (df['installment'] != df['total_installments']).astype(int)
     qtde_parcelado = df['Parcelado'].sum()
 
-    #determonar quantas transacoes ja estao na ultima parcela, ou seja, installment = total_installments;total_installments precisa ser maior que 1
+    # Cria coluna para identificar transações na última parcela
     df['Ultima_parcela'] = ((df['installment'] == df['total_installments']) & (df['total_installments'] > 1)).astype(int)
     qtde_ultima_parcela = df['Ultima_parcela'].sum()
     
-    #cria um csv com as transacoes
+    # Mantém apenas colunas relevantes para o relatório
+    colunas_utilizadas = ['description', 'Valor', 'Categoria', 'Parcelado', 'Ultima_parcela']
+    df = df[colunas_utilizadas]
+
+    # Salva DataFrame ajustado em CSV
     df.to_csv('transacoes_ajustado.csv')
-    
-    # Agrupar por categoria e somar os valores
+
+    # Agrupa por categoria e soma os valores
     df_grouped = df.groupby('Categoria')['Valor'].sum().reset_index()
     
-    # Preencher valores zerados com 0
+    # Preenche valores zerados com 0
     df_grouped['Valor'] = df_grouped['Valor'].abs()
     
-    #determina limites de gastos por categoria
+    # Define limites de gastos por categoria
     limites = {
         'alimentacao_casa': 800,
         'anuidade': 236,
@@ -437,13 +457,13 @@ def main():
     }
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
     
-    #cria coluna porcentagem
+    # Calcula porcentagem de uso do limite por categoria
     df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
     
-    #soma o total de gastos
+    # Soma o total de limites
     total_limite = df_grouped['Limite'].sum()
     
-    #chama a funcao de enviar email com uma tabela com os gastos separados por categoria, com porcentagel, limite e total gasto
+    # Chama função para enviar e-mail com o relatório (comentado)
     enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
 
 if __name__ == "__main__":
