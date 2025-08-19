@@ -440,20 +440,20 @@ def main():
     
     # Define limites de gastos por categoria
     limites = {
-        'alimentacao_casa': 800,
+        'alimentacao_casa': 705,
         'anuidade': 236,
         'assinaturas': 450,
-        'beleza': 200,
-        'casa': 500,
-        'compras': 800,
-        'diversao-lazer-comida': 500,
-        'educacao': 4250,
-        'esporte': 50,
+        'beleza': 430,
+        'casa': 300,
+        'compras': 1400,
+        'diversao-lazer-comida': 2475,
+        'educacao': 2978,
+        'esporte': 0,
         'outros': 200,
-        'saude': 300,
+        'saude': 805,
         'seguro_carro': 403,
-        'transp(ub+gas+vel+ccr)': 1400,
-        'viagem': 700
+        'transp(ub+gas+vel+ccr)': 1930,
+        'viagem': 1000
     }
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
     
@@ -468,3 +468,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
