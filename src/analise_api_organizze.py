@@ -440,14 +440,17 @@ def main():
     
     # Define limites de gastos por categoria
     limites = {
-        'alimentacao_casa': 705,
+        'alimentacao_casa': 1135,
         'anuidade': 236,
-        'assinaturas': 450,
+        'assinaturas': 446,
         'beleza': 430,
         'casa': 300,
-        'compras': 1400,
-        'diversao-lazer-comida': 2475,
-        'educacao': 2978,
+        'compras': 1020,
+        'diversao-lazer': 675,
+        'diversao-comida': 900,
+        'delivery': 900,
+        'educacao': 2178,
+        'marketing': 799,
         'esporte': 0,
         'outros': 200,
         'saude': 805,
