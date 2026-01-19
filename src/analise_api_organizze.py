@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import datetime
 import requests
 import smtplib
@@ -71,14 +72,15 @@ def ajustar_dataframe(df):
 
     return df
 
-def enviar_email(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
+def enviar_email(df_grouped, total, total_limite, projecao_mensal_total, qtde_parcelado, qtde_ultima_parcela):
     """
     Envia um e-mail com um relatório detalhado de despesas por categoria.
     Argumentos:
         df_grouped (pd.DataFrame): Um DataFrame contendo os dados agrupados de despesas com as colunas 
-                                   'Categoria', 'Valor', 'Limite' e 'Porcentagem'.
+                                   'Categoria', 'Valor', 'Limite', 'Novo_Limite', 'Porcentagem' e 'Gasto_Esperado_Ate_Hoje'.
         total (float): O valor total gasto.
         total_limite (float): O limite total disponível.
+        projecao_mensal_total (float): A projeção mensal total baseada nos novos limites.
         qtde_parcelado (int): A quantidade de transações parceladas.
         qtde_ultima_parcela (int): A quantidade de transações que estão na última parcela.
     Retorna:
@@ -96,25 +98,28 @@ From: {sender}
 Content-Type: text/html
 
 <html>
-  <body>
+<body>
     <p>Data: {datetime.datetime.now().strftime('%d/%m/%Y')}</p>
     <h2>Despesas por Categoria:</h2>
     <table border="1">
-      <tr>
+    <tr>
         <th>Categoria</th>
         <th>Valor</th>
         <th>Limite</th>
+        <th>Novo Limite</th>
         <th>Porcentagem</th>
-      </tr>
-      {''.join(f'<tr><td>{row["Categoria"]}</td><td>{row["Valor"]}</td><td>{row["Limite"]}</td><td>{row["Porcentagem"]}</td></tr>' for _, row in df_grouped.iterrows())}
+        <th>Gasto Esperado Ate Hoje</th>
+    </tr>
+    {''.join(f'<tr><td>{row["Categoria"]}</td><td>{row["Valor"]}</td><td>{row["Limite"]}</td><td>{row["Novo_Limite"]:.2f}</td><td>{row["Porcentagem"]}</td><td>{row["Gasto_Esperado_Ate_Hoje"]}</td></tr>' for _, row in df_grouped.iterrows())}
     </table>
     <p>Total Utilizado: R$ {total}</p>
     <p>Total Limite: R$ {total_limite}</p>
+    <p>Projecao Mensal Total: R$ {projecao_mensal_total:.2f}</p>
     <p>Quantidade de transacoes parceladas: {qtde_parcelado}</p>
     <p>Quantidade de transacoes na ultima parcela: {qtde_ultima_parcela}</p>
-  </body>
+</body>
 </html>
-"""
+        """
     #Total: R$ {total}
     print(message)
 
@@ -328,93 +333,85 @@ def main():
 
     url_base = "https://api.organizze.com.br/rest/v2/"
 
-    ids_cartoes = obter_ids_cartoes(headers, url_base)
-    
-    #print(ids_cartoes)
-    # Definindo os IDs dos cartoes de credito com base no que veio da API. Estes nomes devem ser os mesmos que foram
-    # cadastrados no Organizze
-    id_itau_azul = ids_cartoes['Cartao_Itau_Azul']
-    id_sant_aa = ids_cartoes['Cartao_Santander_AA']
-
-    
     # Define intervalo de datas para buscar faturas
     hoje = datetime.datetime.now()
     start_date = (hoje - datetime.timedelta(days=365)).strftime('%Y-%m-%d')
-    end_date = (hoje + datetime.timedelta(days=60)).strftime('%Y-%m-%d')    
+    end_date = (hoje + datetime.timedelta(days=60)).strftime('%Y-%m-%d')  
 
-    # Busca faturas dos dois cartões no período
-    faturas_itau = obter_faturas(headers, id_itau_azul, url_base, start_date, end_date)
-    faturas_santander = obter_faturas(headers, id_sant_aa, url_base, start_date, end_date) 
+    ids_cartoes = obter_ids_cartoes(headers, url_base)
+    
+    # Definindo os cartões como uma lista de dicionários para reduzir repetições
+    cartoes = [
+        {'nome': 'Cartao_Itau_Azul', 'id': ids_cartoes['Cartao_Itau_Azul']},
+        {'nome': 'Cartao_Santander_AA', 'id': ids_cartoes['Cartao_Santander_AA']}
+    ]
 
-    # Identifica fatura atual de cada cartão
-    fatura_atual_itau = verificar_fatura(faturas_itau, 10)
-    fatura_atual_santander = verificar_fatura(faturas_santander, 10)
-
-    id_faturaatual_itau = fatura_atual_itau['id']
-    id_faturaatual_santander = fatura_atual_santander['id'] 
-
-    # Busca transações da fatura atual de cada cartão
-    transacoes_itau = obter_transacoes_fatura(headers, id_itau_azul, id_faturaatual_itau, url_base)
-    transacoes_santander = obter_transacoes_fatura(headers, id_sant_aa, id_faturaatual_santander, url_base)
-
+    faturas_atuais = {}
+    transacoes_atuais_list = []
     transacoes_passadas = []
 
-    # Converte datas de vencimento das faturas atuais para datetime
-    data_fatura_atual_itau = pd.to_datetime(fatura_atual_itau['date'])
-    data_fatura_atual_santander = pd.to_datetime(fatura_atual_santander['date'])
+    # Loop para processar cada cartão (reduz repetições)
+    for cartao in cartoes:
+        nome_cartao = cartao['nome']
+        id_cartao = cartao['id']
+        
+        # Busca faturas do cartão
+        faturas = obter_faturas(headers, id_cartao, url_base, start_date, end_date)
+        
+        # Identifica fatura atual
+        fatura_atual = verificar_fatura(faturas, 10)
+        if not fatura_atual:
+            print(f"Aviso: Nenhuma fatura atual encontrada para {nome_cartao}")
+            continue
+        faturas_atuais[nome_cartao] = fatura_atual
+        
+        # Busca transações da fatura atual
+        transacoes = obter_transacoes_fatura(headers, id_cartao, fatura_atual['id'], url_base)
+        df_atuais = pd.DataFrame(transacoes['transactions'])
+        df_atuais['cartao'] = nome_cartao
+        transacoes_atuais_list.append(df_atuais)
+        
+        # Converte data da fatura atual
+        data_fatura_atual = pd.to_datetime(fatura_atual['date'])
+        
+        # Busca transações parceladas de faturas anteriores
+        for fatura in faturas:
+            if fatura['id'] == fatura_atual['id']:
+                continue  # pula a fatura atual
+            transacoes_fatura = obter_transacoes_fatura(headers, id_cartao, fatura['id'], url_base)
+            if 'transactions' in transacoes_fatura:
+                for t in transacoes_fatura['transactions']:
+                    total_parcelas = t.get('total_installments', 1)
+                    if total_parcelas > 1 and total_parcelas != t.get('installment'):
+                        data_compra = pd.to_datetime(t['date'])
+                        data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
+                        if data_compra <= data_fatura_atual <= data_ultima_parcela:
+                            t['cartao'] = nome_cartao
+                            transacoes_passadas.append(t)
 
-    # Busca transações parceladas de faturas anteriores do Itaú que podem cair na fatura atual
-    for fatura in faturas_itau:
-        if fatura['id'] == id_faturaatual_itau:
-            continue  # pula a fatura atual
-        transacoes = obter_transacoes_fatura(headers, id_itau_azul, fatura['id'], url_base)
-        if 'transactions' in transacoes:
-            for t in transacoes['transactions']:
-                total_parcelas = t.get('total_installments', 1)
-                # Só considera transações parceladas e que não estão na última parcela
-                if total_parcelas > 1 and total_parcelas != t.get('installment'):
-                    data_compra = pd.to_datetime(t['date'])
-                    data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
-                    # Só adiciona se alguma parcela pode cair na fatura atual
-                    if data_compra <= data_fatura_atual_itau <= data_ultima_parcela:
-                        transacoes_passadas.append(t)
+    # Junta transações atuais de todos os cartões
+    df_transacoes_atuais = pd.concat(transacoes_atuais_list, ignore_index=True) if transacoes_atuais_list else pd.DataFrame()
 
-    # Busca transações parceladas de faturas anteriores do Santander que podem cair na fatura atual
-    for fatura in faturas_santander:
-        if fatura['id'] == id_faturaatual_santander:
-            continue  # pula a fatura atual
-        transacoes = obter_transacoes_fatura(headers, id_sant_aa, fatura['id'], url_base)
-        if 'transactions' in transacoes:
-            for t in transacoes['transactions']:
-                total_parcelas = t.get('total_installments', 1)
-                if total_parcelas > 1 and total_parcelas != t.get('installment'):
-                    data_compra = pd.to_datetime(t['date'])
-                    data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
-                    if data_compra <= data_fatura_atual_santander <= data_ultima_parcela:
-                        transacoes_passadas.append(t)
-
-    # Junta transações atuais dos dois cartões em um único DataFrame
-    df_transacoes_atuais = pd.concat([
-        pd.DataFrame(transacoes_itau['transactions']),
-        pd.DataFrame(transacoes_santander['transactions'])
-    ], ignore_index=True)
-
-    # Salva transações atuais em CSV
-    df_transacoes_atuais.to_csv('transacoes_atuais.csv', index=False)
-
-    # Cria DataFrame com transações passadas que podem cair na fatura atual
+    # Cria DataFrame com transações passadas
     df_transacoes_passadas = pd.DataFrame(transacoes_passadas)
-    df_transacoes_passadas.to_csv('transacoes_passadas.csv', index=False)
 
-    # Junta transações atuais e passadas
+    # Junta transações atuais e passadas logo após obtê-las (otimiza ordem)
     df_transacoes = pd.concat([df_transacoes_atuais, df_transacoes_passadas], ignore_index=True)
 
-    # Remove duplicatas considerando descricao, data e amount_cents, mantendo o maior installment
+    # Remove duplicatas e trata anuidades imediatamente (evita retrabalho posterior)
     df_transacoes = df_transacoes.sort_values('installment').drop_duplicates(
         subset=['description', 'date', 'amount_cents'], keep='last'
-    )    
+    )
     
-    # Ajusta e categoriza o DataFrame para análise
+    # Para anuidade, manter apenas uma transação por cartão (a mais recente por data)
+    df_anuidade = df_transacoes[df_transacoes['description'].str.contains('anuidade', case=False, na=False)]
+    df_anuidade = df_anuidade.sort_values('date').drop_duplicates(subset=['cartao'], keep='last')
+    
+    # Remove as anuidades do df original e adiciona as filtradas
+    df_transacoes = df_transacoes[~df_transacoes['description'].str.contains('anuidade', case=False, na=False)]
+    df_transacoes = pd.concat([df_transacoes, df_anuidade], ignore_index=True)    
+    
+    # Ajusta e categoriza o DataFrame para análise (apenas uma vez, após limpezas)
     df = ajustar_dataframe(df_transacoes)
     
     # Cria coluna para identificar transações parceladas
@@ -429,7 +426,7 @@ def main():
     colunas_utilizadas = ['description', 'Valor', 'Categoria', 'Parcelado', 'Ultima_parcela']
     df = df[colunas_utilizadas]
 
-    # Salva DataFrame ajustado em CSV
+    # Salva DataFrame ajustado em CSV (remove CSVs intermediários para foco no final)
     df.to_csv('transacoes_ajustado.csv')
 
     # Agrupa por categoria e soma os valores
@@ -460,15 +457,75 @@ def main():
     }
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
     
-    # Calcula porcentagem de uso do limite por categoria
-    df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Limite'] * 100).map('{:.2f}%'.format)
-    
-    # Soma o total de limites
+    # Calcula totais
+    total_gasto = df_grouped['Valor'].sum()
     total_limite = df_grouped['Limite'].sum()
     
+    categorias_invariaveis = {'anuidade', 'assinaturas', 'marketing', 'educacao', 'seguro_carro', 'transp(ub+gas+vel+ccr)'}
+    
+    # Obter dias no mês e dia atual
+    import calendar
+    hoje = datetime.datetime.now()
+    dias_no_mes = calendar.monthrange(hoje.year, hoje.month)[1]
+    dia_atual = hoje.day
+    
+    # Calcular dias da fatura (de 11 até o fim do mês)
+    dias_fatura = dias_no_mes - 11 + 1
+    
+    # Passo 1: Calcular projeção para invariáveis
+    # Gasto fixo diário = limite / dias_fatura
+    gasto_diario = df_grouped['Limite'] / dias_fatura
+    dias_restantes = max(0, dias_no_mes - dia_atual + 1)  # Dias restantes até o fim do mês
+    projecao = gasto_diario * dias_restantes
+    
+    # Inicializar Novo_Limite
+    df_grouped['Novo_Limite'] = 0.0
+    
+    # Passo 2: Novo limite para invariáveis = max(Limite, gasto + projeção)
+    mask_invariaveis = df_grouped['Categoria'].isin(categorias_invariaveis)
+    df_grouped.loc[mask_invariaveis, 'Novo_Limite'] = np.maximum(df_grouped.loc[mask_invariaveis, 'Limite'], df_grouped.loc[mask_invariaveis, 'Valor'] + projecao.loc[mask_invariaveis])
+    
+    # Passo 3: Para variáveis que já ultrapassaram (Valor > Limite), novo limite = Valor
+    mask_ultrapassaram = ~mask_invariaveis & (df_grouped['Valor'] > df_grouped['Limite'])
+    df_grouped.loc[mask_ultrapassaram, 'Novo_Limite'] = df_grouped.loc[mask_ultrapassaram, 'Valor']
+    
+    # Passo 4: Calcular saldo restante
+    novo_limite_invariaveis = df_grouped.loc[mask_invariaveis, 'Novo_Limite'].sum()
+    novo_limite_ultrapassaram = df_grouped.loc[mask_ultrapassaram, 'Novo_Limite'].sum()
+    saldo_restante = total_limite - novo_limite_invariaveis - novo_limite_ultrapassaram
+    
+    # Variáveis que não ultrapassaram
+    mask_nao_ultrapassaram = ~mask_invariaveis & (df_grouped['Valor'] <= df_grouped['Limite'])
+    num_nao_ultrapassaram = mask_nao_ultrapassaram.sum()
+    
+    if saldo_restante > 0 and num_nao_ultrapassaram > 0:
+        # Distribuir igualmente
+        distribuicao = saldo_restante / num_nao_ultrapassaram
+        df_grouped.loc[mask_nao_ultrapassaram, 'Novo_Limite'] = df_grouped.loc[mask_nao_ultrapassaram, 'Valor'] + distribuicao
+    else:
+        # Limitar ao que já foi gasto
+        df_grouped.loc[mask_nao_ultrapassaram, 'Novo_Limite'] = df_grouped.loc[mask_nao_ultrapassaram, 'Valor']
+    
+    # Passo 5: A soma da coluna Novo_Limite é a projeção mensal total
+    projecao_mensal_total = df_grouped['Novo_Limite'].sum()
+    
+    # Recalcula porcentagem com Novo_Limite
+    df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Novo_Limite'] * 100).map('{:.2f}%'.format)
+    
+    # Calcula gasto esperado até hoje (distribuição igual em dias_fatura dias, começando no dia 11)
+    dias_gastando = max(0, dia_atual - 11 + 1)  # Dias desde o dia 11
+    df_grouped['Gasto_Esperado_Ate_Hoje'] = (df_grouped['Novo_Limite'] / dias_fatura * dias_gastando).map('{:.2f}'.format)
+    
+    
+
+    df_grouped['Valor'] = df_grouped['Valor'].round(2)
+    print(f"Projecao Mensal Total: {projecao_mensal_total:.2f}")
+    # Configurar pandas para exibir todas as linhas e colunas
+    pd.set_option('display.max_rows', None)
+    pd.set_option('display.max_columns', None)
+    print(df_grouped)
     # Chama função para enviar e-mail com o relatório (comentado)
-    enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
+    enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, projecao_mensal_total, qtde_parcelado, qtde_ultima_parcela)
 
 if __name__ == "__main__":
     main()
-
