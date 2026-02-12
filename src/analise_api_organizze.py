@@ -52,7 +52,7 @@ def ajustar_dataframe(df):
     df['Valor'] = df['amount_cents'] / 100.0
 
     #apagar coluna amount_cents
-    df = df.drop(columns=['amount_cents'])
+    #df = df.drop(columns=['amount_cents'])
     
     # Aplica a função para criar a nova coluna 'Categoria'
     df['Categoria'] = df['category_id'].apply(obter_nome_categoria)
@@ -69,6 +69,9 @@ def ajustar_dataframe(df):
 
     #apagar a linha que contem a seguinte cadeia de caracteres 'deb._autom._de_fatura'
     df = df[~df['description'].str.contains('deb._autom._de_fatura')]
+    
+    # Ignora transações que contêm 'ignorar' no campo 'notes'
+    df = df[~df['notes'].str.contains('ignorar', case=False, na=False)]
 
     return df
 
@@ -364,15 +367,20 @@ def main():
             print(f"Aviso: Nenhuma fatura atual encontrada para {nome_cartao}")
             continue
         faturas_atuais[nome_cartao] = fatura_atual
+
+        # Converte data da fatura atual
+        data_fatura_atual = pd.to_datetime(fatura_atual['date'])
+        #print("data fatura atual:", data_fatura_atual)
         
         # Busca transações da fatura atual
         transacoes = obter_transacoes_fatura(headers, id_cartao, fatura_atual['id'], url_base)
+        #print (transacoes)
         df_atuais = pd.DataFrame(transacoes['transactions'])
         df_atuais['cartao'] = nome_cartao
         transacoes_atuais_list.append(df_atuais)
+        df_atuais.to_csv(f'transacoes_atuais_{nome_cartao}.csv', index=False)
         
-        # Converte data da fatura atual
-        data_fatura_atual = pd.to_datetime(fatura_atual['date'])
+        
         
         # Busca transações parceladas de faturas anteriores
         for fatura in faturas:
@@ -385,15 +393,18 @@ def main():
                     if total_parcelas > 1 and total_parcelas != t.get('installment'):
                         data_compra = pd.to_datetime(t['date'])
                         data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
-                        if data_compra <= data_fatura_atual <= data_ultima_parcela:
+                        if data_ultima_parcela >= (data_fatura_atual - relativedelta(days=30)):
+                            #print(f"Transação parcelada encontrada: {t['description']} - Parcela {t['installment']}/{total_parcelas} - Data da compra: {data_compra.date()} - Última parcela: {data_ultima_parcela.date()}")
                             t['cartao'] = nome_cartao
                             transacoes_passadas.append(t)
 
+    #print("transacoes atuais: ", transacoes_atuais_list)
     # Junta transações atuais de todos os cartões
     df_transacoes_atuais = pd.concat(transacoes_atuais_list, ignore_index=True) if transacoes_atuais_list else pd.DataFrame()
 
     # Cria DataFrame com transações passadas
     df_transacoes_passadas = pd.DataFrame(transacoes_passadas)
+    df_transacoes_passadas.to_csv('transacoes_passadas.csv', index=False)
 
     # Junta transações atuais e passadas logo após obtê-las (otimiza ordem)
     df_transacoes = pd.concat([df_transacoes_atuais, df_transacoes_passadas], ignore_index=True)
@@ -423,7 +434,7 @@ def main():
     qtde_ultima_parcela = df['Ultima_parcela'].sum()
     
     # Mantém apenas colunas relevantes para o relatório
-    colunas_utilizadas = ['description', 'Valor', 'Categoria', 'Parcelado', 'Ultima_parcela']
+    colunas_utilizadas = ['description', 'Valor', 'amount_cents', 'Categoria', 'Parcelado', 'Ultima_parcela']
     df = df[colunas_utilizadas]
 
     # Salva DataFrame ajustado em CSV (remove CSVs intermediários para foco no final)
@@ -449,7 +460,7 @@ def main():
         'educacao': 2178,
         'marketing': 799,
         'esporte': 0,
-        'outros': 200,
+        'outros': 3200,
         'saude': 805,
         'seguro_carro': 403,
         'transp(ub+gas+vel+ccr)': 1930,
@@ -461,7 +472,7 @@ def main():
     total_gasto = df_grouped['Valor'].sum()
     total_limite = df_grouped['Limite'].sum()
     
-    categorias_invariaveis = {'anuidade', 'assinaturas', 'marketing', 'educacao', 'seguro_carro', 'transp(ub+gas+vel+ccr)'}
+    categorias_invariaveis = {'assinaturas', 'seguro_carro', 'transp(ub+gas+vel+ccr)'}
     
     # Obter dias no mês e dia atual
     import calendar
@@ -516,14 +527,15 @@ def main():
     dias_gastando = max(0, dia_atual - 11 + 1)  # Dias desde o dia 11
     df_grouped['Gasto_Esperado_Ate_Hoje'] = (df_grouped['Novo_Limite'] / dias_fatura * dias_gastando).map('{:.2f}'.format)
     
+    df_grouped['Diferenca'] = df_grouped['Novo_Limite'] - df_grouped['Valor']
     
 
     df_grouped['Valor'] = df_grouped['Valor'].round(2)
     print(f"Projecao Mensal Total: {projecao_mensal_total:.2f}")
     # Configurar pandas para exibir todas as linhas e colunas
     pd.set_option('display.max_rows', None)
-    pd.set_option('display.max_columns', None)
-    print(df_grouped)
+    pd.set_option('display.max_columns', None)    
+    print(df_grouped.to_string(), "nTotal Utilizado: R$ {:.2f}".format(total_gasto), "nTotal Limite: R$ {:.2f}".format(total_limite), "nProjecao Mensal Total: R$ {:.2f}".format(projecao_mensal_total), sep='\n')
     # Chama função para enviar e-mail com o relatório (comentado)
     enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, projecao_mensal_total, qtde_parcelado, qtde_ultima_parcela)
 
