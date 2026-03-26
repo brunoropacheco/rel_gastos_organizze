@@ -64,13 +64,12 @@ O script realiza as seguintes operações:
    - Obtém as transações das faturas atuais.
 
 4. **Tratamento de Compras Parceladas**
-   - Busca transações parceladas de faturas anteriores que ainda podem impactar a fatura atual.
-   - Só considera transações em que alguma parcela pode cair na fatura atual (baseado na data da compra e número de parcelas).
-   - Elimina duplicidades entre transações de faturas anteriores e atuais, mantendo a de maior parcela.
+   - O script processa apenas as transações que já estão alocadas na fatura atual.
+   - **IMPORTANTE**: Transações parceladas com parcelas futuras precisam ser movidas manualmente no Organizze para a fatura atual sempre que a fatura virar. A API do Organizze não permite mover automaticamente parcelas entre faturas, por isso é necessário fazer isso manualmente na interface do Organizze.
 
 5. **Processamento de Dados**
-   - Junta transações atuais e passadas em um único DataFrame.
-   - Remove duplicatas considerando descrição, data e valor, mantendo o maior número de parcela.
+   - Processa as transações atuais em um DataFrame.
+   - Remove duplicatas considerando descrição, data e valor.
    - Mantém apenas as colunas relevantes para análise.
 
 6. **Análise e Categorização**

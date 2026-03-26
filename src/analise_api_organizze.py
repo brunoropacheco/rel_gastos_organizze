@@ -314,19 +314,22 @@ def main():
     2. Define os IDs das contas de cartões de crédito e o intervalo de datas para análise.
     3. Obtém as faturas dos cartões de crédito no período especificado.
     4. Identifica as faturas atuais e obtém suas transações.
-    5. Busca transações de faturas anteriores e ajusta o campo de parcelas (installment).
-    6. Combina as transações atuais e anteriores, mantendo apenas os campos relevantes.
-    7. Converte as transações em DataFrames e ajusta os dados para análise.
-    8. Calcula a quantidade de transações parceladas e as que estão na última parcela.
-    9. Gera um arquivo CSV com as transações ajustadas.
-    10. Agrupa os dados por categoria, calcula os valores totais e compara com os limites definidos.
-    11. Envia um e-mail com o resumo das informações financeiras.
+    5. Converte as transações em DataFrames e ajusta os dados para análise.
+    6. Calcula a quantidade de transações parceladas e as que estão na última parcela.
+    7. Gera um arquivo CSV com as transações ajustadas.
+    8. Agrupa os dados por categoria, calcula os valores totais e compara com os limites definidos.
+    9. Envia um e-mail com o resumo das informações financeiras.
+    
+    NOTA: As transações parceladas que caem em meses subsequentes devem ser movidas manualmente
+    no Organizze para a fatura atual, pois a API só retorna transações que já estão alocadas
+    na fatura. Sempre que a fatura virar, verifique no Organizze e mova manualmente as
+    parcelas restantes das compras parceladas para a fatura atual.
     Saída:
     - Gera um arquivo CSV chamado 'transacoes_ajustado.csv' com as transações ajustadas.
     - Envia um e-mail com o resumo financeiro, incluindo valores totais, limites e porcentagens.
     Requisitos:
     - As funções auxiliares `obter_faturas`, `verificar_fatura`, `obter_transacoes_fatura`, 
-        `obter_transacoes_fatura_anterior`, `ajustar_dataframe` e `enviar_email` devem estar implementadas.
+        `ajustar_dataframe` e `enviar_email` devem estar implementadas.
     - As bibliotecas `os`, `datetime`, `pandas` e outras necessárias devem estar importadas.
     """
     token = os.getenv('TOKEN_ORGANIZZE')
@@ -360,6 +363,8 @@ def main():
         
         # Busca faturas do cartão
         faturas = obter_faturas(headers, id_cartao, url_base, start_date, end_date)
+
+
         
         # Identifica fatura atual
         fatura_atual = verificar_fatura(faturas, 10)
@@ -380,34 +385,8 @@ def main():
         transacoes_atuais_list.append(df_atuais)
         df_atuais.to_csv(f'transacoes_atuais_{nome_cartao}.csv', index=False)
         
-        
-        
-        # Busca transações parceladas de faturas anteriores
-        for fatura in faturas:
-            if fatura['id'] == fatura_atual['id']:
-                continue  # pula a fatura atual
-            transacoes_fatura = obter_transacoes_fatura(headers, id_cartao, fatura['id'], url_base)
-            if 'transactions' in transacoes_fatura:
-                for t in transacoes_fatura['transactions']:
-                    total_parcelas = t.get('total_installments', 1)
-                    if total_parcelas > 1 and total_parcelas != t.get('installment'):
-                        data_compra = pd.to_datetime(t['date'])
-                        data_ultima_parcela = data_compra + relativedelta(months=total_parcelas - 1)
-                        if data_ultima_parcela >= (data_fatura_atual - relativedelta(days=30)):
-                            #print(f"Transação parcelada encontrada: {t['description']} - Parcela {t['installment']}/{total_parcelas} - Data da compra: {data_compra.date()} - Última parcela: {data_ultima_parcela.date()}")
-                            t['cartao'] = nome_cartao
-                            transacoes_passadas.append(t)
-
-    #print("transacoes atuais: ", transacoes_atuais_list)
-    # Junta transações atuais de todos os cartões
     df_transacoes_atuais = pd.concat(transacoes_atuais_list, ignore_index=True) if transacoes_atuais_list else pd.DataFrame()
-
-    # Cria DataFrame com transações passadas
-    df_transacoes_passadas = pd.DataFrame(transacoes_passadas)
-    df_transacoes_passadas.to_csv('transacoes_passadas.csv', index=False)
-
-    # Junta transações atuais e passadas logo após obtê-las (otimiza ordem)
-    df_transacoes = pd.concat([df_transacoes_atuais, df_transacoes_passadas], ignore_index=True)
+    df_transacoes = df_transacoes_atuais
 
     # Remove duplicatas e trata anuidades imediatamente (evita retrabalho posterior)
     df_transacoes = df_transacoes.sort_values('installment').drop_duplicates(
