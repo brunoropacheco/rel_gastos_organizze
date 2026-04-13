@@ -427,7 +427,7 @@ def main():
     
     # Define limites de gastos por categoria
     limites = {
-        'alimentacao_casa': 1135,
+        'alimentacao_casa': 1000,
         'anuidade': 236,
         'assinaturas': 446,
         'beleza': 430,
@@ -436,14 +436,14 @@ def main():
         'diversao-lazer': 675,
         'diversao-comida': 900,
         'delivery': 900,
-        'educacao': 2178,
+        'educacao': 2354,
         'marketing': 799,
         'esporte': 0,
-        'outros': 3200,
+        'outros': 1000,
         'saude': 805,
         'seguro_carro': 403,
         'transp(ub+gas+vel+ccr)': 1930,
-        'viagem': 1000
+        'viagem': 2500
     }
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
     
