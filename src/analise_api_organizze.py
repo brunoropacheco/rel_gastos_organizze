@@ -439,7 +439,7 @@ def main():
         'educacao': 2354,
         'marketing': 799,
         'esporte': 0,
-        'outros': 1000,
+        'outros': 500,
         'saude': 805,
         'seguro_carro': 403,
         'transp(ub+gas+vel+ccr)': 1930,
