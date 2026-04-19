@@ -5,7 +5,113 @@ import requests
 import smtplib
 import os
 import re
+import json
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 from dateutil.relativedelta import relativedelta
+
+def get_google_credentials():
+    """Load Google service account credentials from environment."""
+    credentials_json = os.environ.get('GOOGLE_DRIVE_CREDENTIALS')
+    if not credentials_json:
+        print('GOOGLE_DRIVE_CREDENTIALS environment variable not set')
+        return None
+    try:
+        credentials_info = json.loads(credentials_json)
+        scopes = [
+            'https://www.googleapis.com/auth/drive',
+            'https://www.googleapis.com/auth/spreadsheets.readonly',
+        ]
+        return service_account.Credentials.from_service_account_info(
+            credentials_info, scopes=scopes)
+    except Exception as e:
+        print(f'Error loading Google credentials: {e}')
+        return None
+
+
+def authenticate_google_drive():
+    """Authenticate with Google Drive API using service account credentials."""
+    credentials = get_google_credentials()
+    if not credentials:
+        return None
+    try:
+        return build('drive', 'v3', credentials=credentials)
+    except Exception as e:
+        print(f'Google Drive authentication error: {e}')
+        return None
+
+
+def authenticate_google_sheets():
+    """Authenticate with Google Sheets API using service account credentials."""
+    credentials = get_google_credentials()
+    if not credentials:
+        return None
+    try:
+        return build('sheets', 'v4', credentials=credentials)
+    except Exception as e:
+        print(f'Google Sheets authentication error: {e}')
+        return None
+
+
+def find_drive_file_id_by_name(drive_service, file_name):
+    """Find a Google Drive file ID by exact file name."""
+    try:
+        query = f"name = '{file_name}' and trashed = false"
+        response = drive_service.files().list(
+            q=query,
+            spaces='drive',
+            fields='files(id, name)',
+            pageSize=10,
+        ).execute()
+        files = response.get('files', [])
+        if not files:
+            print(f"Arquivo '{file_name}' não encontrado no Google Drive.")
+            return None
+        return files[0].get('id')
+    except Exception as e:
+        print(f"Erro ao buscar arquivo '{file_name}' no Google Drive: {e}")
+        return None
+
+
+def load_category_limits_from_google_sheet(sheet_service, spreadsheet_name, sheet_name):
+    """Read category limits from a Google Sheets worksheet."""
+    try:
+        drive_service = authenticate_google_drive()
+        if not drive_service:
+            return {}
+        spreadsheet_id = find_drive_file_id_by_name(drive_service, spreadsheet_name)
+        if not spreadsheet_id:
+            return {}
+
+        range_name = f"{sheet_name}!A1:B"
+        result = sheet_service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range_name,
+        ).execute()
+        values = result.get('values', [])
+        if not values:
+            print(f"Aba '{sheet_name}' do arquivo '{spreadsheet_name}' está vazia ou não foi encontrada.")
+            return {}
+
+        limits = {}
+        for row in values:
+            if not row:
+                continue
+            category = str(row[0]).strip().lower()
+            if category == '':
+                continue
+            amount_raw = str(row[1]).strip() if len(row) > 1 else ''
+            amount_raw = amount_raw.replace('.', '').replace(',', '.')
+            try:
+                limits[category] = float(amount_raw)
+            except ValueError:
+                print(f"Valor inválido para categoria '{category}': '{amount_raw}'. Usando 0.")
+                limits[category] = 0.0
+        return limits
+    except Exception as e:
+        print(f"Erro ao ler limites do Google Sheets: {e}")
+        return {}
+
 
 def obter_nome_categoria(id_categoria):
     """
@@ -425,26 +531,44 @@ def main():
     # Preenche valores zerados com 0
     df_grouped['Valor'] = df_grouped['Valor'].abs()
     
-    # Define limites de gastos por categoria
-    limites = {
-        'alimentacao_casa': 1000,
-        'anuidade': 236,
-        'assinaturas': 446,
-        'beleza': 430,
-        'casa': 800,
-        'compras': 920,
-        'diversao-lazer': 575,
-        'diversao-comida': 750,
-        'delivery': 900,
-        'educacao': 2600,
-        'marketing': 799,
-        'esporte': 0,
-        'outros': 100,
-        'saude': 805,
-        'seguro_carro': 403,
-        'transp(ub+gas+vel+ccr)': 1930,
-        'viagem': 2500
-    }
+    # Tenta carregar limites do Google Sheets
+    sheet_service = authenticate_google_sheets()
+    if sheet_service:
+        limites = load_category_limits_from_google_sheet(
+            sheet_service,
+            'Financas2026',
+            'Limites',
+        )
+        if limites:
+            print(f"Limites carregados do Google Sheets: {len(limites)} categorias")
+        else:
+            print('Nenhum limite carregado do Google Sheets; usando valores padrão.')
+    else:
+        print('Falha na autenticação do Google Sheets; usando valores padrão.')
+        limites = {}
+
+    # Fallback para limites padrão se a planilha não fornecer valores
+    if not limites:
+        limites = {
+            'alimentacao_casa': 1000,
+            'anuidade': 236,
+            'assinaturas': 446,
+            'beleza': 430,
+            'casa': 800,
+            'compras': 920,
+            'diversao-lazer': 575,
+            'diversao-comida': 750,
+            'delivery': 900,
+            'educacao': 2600,
+            'marketing': 799,
+            'esporte': 0,
+            'outros': 100,
+            'saude': 805,
+            'seguro_carro': 403,
+            'transp(ub+gas+vel+ccr)': 1930,
+            'viagem': 2500
+        }
+
     df_grouped['Limite'] = df_grouped['Categoria'].map(limites).fillna(0)
     
     # Calcula totais
