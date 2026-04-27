@@ -183,10 +183,10 @@ def ajustar_dataframe(df):
 
 def enviar_email(df_grouped, total, total_limite, projecao_mensal_total, qtde_parcelado, qtde_ultima_parcela):
     """
-    Envia um e-mail com um relatório detalhado de despesas por categoria.
+    Envia um e-mail com um relatório de despesas por categoria.
     Argumentos:
         df_grouped (pd.DataFrame): Um DataFrame contendo os dados agrupados de despesas com as colunas 
-                                   'Categoria', 'Valor', 'Limite', 'Novo_Limite', 'Porcentagem' e 'Gasto_Esperado_Ate_Hoje'.
+                                   'Categoria', 'Valor' e 'Limite'.
         total (float): O valor total gasto.
         total_limite (float): O limite total disponível.
         projecao_mensal_total (float): A projeção mensal total baseada nos novos limites.
@@ -213,13 +213,11 @@ Content-Type: text/html
     <table border="1">
     <tr>
         <th>Categoria</th>
-        <th>Valor</th>
+        <th>Valor Consumido</th>
         <th>Limite</th>
-        <th>Novo Limite</th>
-        <th>Porcentagem</th>
-        <th>Gasto Esperado Ate Hoje</th>
+        <th>Valor Disponível</th>
     </tr>
-    {''.join(f'<tr><td>{row["Categoria"]}</td><td>{row["Valor"]}</td><td>{row["Limite"]}</td><td>{row["Novo_Limite"]:.2f}</td><td>{row["Porcentagem"]}</td><td>{row["Gasto_Esperado_Ate_Hoje"]}</td></tr>' for _, row in df_grouped.iterrows())}
+    {''.join(f'<tr><td>{row["Categoria"]}</td><td>{row["Valor"]:.2f}</td><td>{row["Limite"]:.2f}</td><td>{row["Limite"] - row["Valor"]:.2f}</td></tr>' for _, row in df_grouped.iterrows())}
     </table>
     <p>Total Utilizado: R$ {total}</p>
     <p>Total Limite: R$ {total_limite}</p>
