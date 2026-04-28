@@ -181,7 +181,7 @@ def ajustar_dataframe(df):
 
     return df
 
-def enviar_email(df_grouped, total, total_limite, projecao_mensal_total, qtde_parcelado, qtde_ultima_parcela):
+def enviar_email(df_grouped, total, total_limite, qtde_parcelado, qtde_ultima_parcela):
     """
     Envia um e-mail com um relatório de despesas por categoria.
     Argumentos:
@@ -189,7 +189,6 @@ def enviar_email(df_grouped, total, total_limite, projecao_mensal_total, qtde_pa
                                    'Categoria', 'Valor' e 'Limite'.
         total (float): O valor total gasto.
         total_limite (float): O limite total disponível.
-        projecao_mensal_total (float): A projeção mensal total baseada nos novos limites.
         qtde_parcelado (int): A quantidade de transações parceladas.
         qtde_ultima_parcela (int): A quantidade de transações que estão na última parcela.
     Retorna:
@@ -204,7 +203,8 @@ def enviar_email(df_grouped, total, total_limite, projecao_mensal_total, qtde_pa
 Subject: Relatorio de Gastos de Cartoes
 To: {receiver}
 From: {sender}
-Content-Type: text/html
+Content-Type: text/html; charset=utf-8
+Content-Transfer-Encoding: 8bit
 
 <html>
 <body>
@@ -221,7 +221,6 @@ Content-Type: text/html
     </table>
     <p>Total Utilizado: R$ {total}</p>
     <p>Total Limite: R$ {total_limite}</p>
-    <p>Projecao Mensal Total: R$ {projecao_mensal_total:.2f}</p>
     <p>Quantidade de transacoes parceladas: {qtde_parcelado}</p>
     <p>Quantidade de transacoes na ultima parcela: {qtde_ultima_parcela}</p>
 </body>
@@ -233,7 +232,7 @@ Content-Type: text/html
     with smtplib.SMTP("smtp.gmail.com", 587) as server:
         server.starttls()  # Inicia a conexão TLS
         server.login(sender, password)  # Faz login com o e-mail e senha do aplicativo
-        server.sendmail(sender, receiver, message)  # Envia o e-mail
+        server.sendmail(sender, receiver, message.encode('utf-8'))  # Envia o e-mail em UTF-8
 
 def extrair_transacoes(arquivo):
     """
@@ -573,72 +572,14 @@ def main():
     total_gasto = df_grouped['Valor'].sum()
     total_limite = df_grouped['Limite'].sum()
     
-    categorias_invariaveis = {'assinaturas', 'seguro_carro', 'transp(ub+gas+vel+ccr)'}
-    
-    # Obter dias no mês e dia atual
-    import calendar
-    hoje = datetime.datetime.now()
-    dias_no_mes = calendar.monthrange(hoje.year, hoje.month)[1]
-    dia_atual = hoje.day
-    
-    # Calcular dias da fatura (de 11 até o fim do mês)
-    dias_fatura = dias_no_mes - 11 + 1
-    
-    # Passo 1: Calcular projeção para invariáveis
-    # Gasto fixo diário = limite / dias_fatura
-    gasto_diario = df_grouped['Limite'] / dias_fatura
-    dias_restantes = max(0, dias_no_mes - dia_atual + 1)  # Dias restantes até o fim do mês
-    projecao = gasto_diario * dias_restantes
-    
-    # Inicializar Novo_Limite
-    df_grouped['Novo_Limite'] = 0.0
-    
-    # Passo 2: Novo limite para invariáveis = max(Limite, gasto + projeção)
-    mask_invariaveis = df_grouped['Categoria'].isin(categorias_invariaveis)
-    df_grouped.loc[mask_invariaveis, 'Novo_Limite'] = np.maximum(df_grouped.loc[mask_invariaveis, 'Limite'], df_grouped.loc[mask_invariaveis, 'Valor'] + projecao.loc[mask_invariaveis])
-    
-    # Passo 3: Para variáveis que já ultrapassaram (Valor > Limite), novo limite = Valor
-    mask_ultrapassaram = ~mask_invariaveis & (df_grouped['Valor'] > df_grouped['Limite'])
-    df_grouped.loc[mask_ultrapassaram, 'Novo_Limite'] = df_grouped.loc[mask_ultrapassaram, 'Valor']
-    
-    # Passo 4: Calcular saldo restante
-    novo_limite_invariaveis = df_grouped.loc[mask_invariaveis, 'Novo_Limite'].sum()
-    novo_limite_ultrapassaram = df_grouped.loc[mask_ultrapassaram, 'Novo_Limite'].sum()
-    saldo_restante = total_limite - novo_limite_invariaveis - novo_limite_ultrapassaram
-    
-    # Variáveis que não ultrapassaram
-    mask_nao_ultrapassaram = ~mask_invariaveis & (df_grouped['Valor'] <= df_grouped['Limite'])
-    num_nao_ultrapassaram = mask_nao_ultrapassaram.sum()
-    
-    if saldo_restante > 0 and num_nao_ultrapassaram > 0:
-        # Distribuir igualmente
-        distribuicao = saldo_restante / num_nao_ultrapassaram
-        df_grouped.loc[mask_nao_ultrapassaram, 'Novo_Limite'] = df_grouped.loc[mask_nao_ultrapassaram, 'Valor'] + distribuicao
-    else:
-        # Limitar ao que já foi gasto
-        df_grouped.loc[mask_nao_ultrapassaram, 'Novo_Limite'] = df_grouped.loc[mask_nao_ultrapassaram, 'Valor']
-    
-    # Passo 5: A soma da coluna Novo_Limite é a projeção mensal total
-    projecao_mensal_total = df_grouped['Novo_Limite'].sum()
-    
-    # Recalcula porcentagem com Novo_Limite
-    df_grouped['Porcentagem'] = (df_grouped['Valor'] / df_grouped['Novo_Limite'] * 100).map('{:.2f}%'.format)
-    
-    # Calcula gasto esperado até hoje (distribuição igual em dias_fatura dias, começando no dia 11)
-    dias_gastando = max(0, dia_atual - 11 + 1)  # Dias desde o dia 11
-    df_grouped['Gasto_Esperado_Ate_Hoje'] = (df_grouped['Novo_Limite'] / dias_fatura * dias_gastando).map('{:.2f}'.format)
-    
-    df_grouped['Diferenca'] = df_grouped['Novo_Limite'] - df_grouped['Valor']
-    
 
     df_grouped['Valor'] = df_grouped['Valor'].round(2)
-    print(f"Projecao Mensal Total: {projecao_mensal_total:.2f}")
     # Configurar pandas para exibir todas as linhas e colunas
     pd.set_option('display.max_rows', None)
     pd.set_option('display.max_columns', None)    
-    print(df_grouped.to_string(), "nTotal Utilizado: R$ {:.2f}".format(total_gasto), "nTotal Limite: R$ {:.2f}".format(total_limite), "nProjecao Mensal Total: R$ {:.2f}".format(projecao_mensal_total), sep='\n')
+    print(df_grouped.to_string(), "nTotal Utilizado: R$ {:.2f}".format(total_gasto), "nTotal Limite: R$ {:.2f}".format(total_limite), sep='\n')
     # Chama função para enviar e-mail com o relatório (comentado)
-    enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, projecao_mensal_total, qtde_parcelado, qtde_ultima_parcela)
+    enviar_email(df_grouped, round(df_grouped['Valor'].sum(), 2), total_limite, qtde_parcelado, qtde_ultima_parcela)
 
 if __name__ == "__main__":
     main()
