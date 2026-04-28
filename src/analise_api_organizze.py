@@ -165,7 +165,7 @@ def ajustar_dataframe(df):
     df = df.drop(columns=['category_id'])
 
     # Adiciona transações coringa para categorias sem valor
-    categorias = ['viagem', 'alimentacao_casa', 'seguro_carro', 'transp(ub+gas+vel+ccr)', 'compras', 'assinaturas', 'saude', 'casa', 'educacao', 'esporte', 'diversao-lazer-comida', 'beleza', 'anuidade', 'outros']
+    categorias = ['viagem', 'alimentacao_casa', 'seguro_carro', 'transp(ub+gas+vel+ccr)', 'compras', 'assinaturas', 'saude', 'casa', 'educacao', 'esporte', 'beleza', 'anuidade', 'outros']
     new_rows = []
     for categoria in categorias:
         if categoria not in df['Categoria'].values:
