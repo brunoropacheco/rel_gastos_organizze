@@ -20,6 +20,9 @@ O projeto depende das seguintes bibliotecas Python (listadas em `requirements.tx
 - dateutil
 - smtplib
 - numpy
+- google-api-python-client
+- google-auth
+- google-auth-oauthlib
 
 Para instalar todas as dependências, execute:
 
@@ -33,6 +36,7 @@ Antes de executar o script, defina as seguintes variáveis de ambiente:
 
 - `TOKEN_ORGANIZZE`: Token de autenticação para a API do Organizze.
 - `PASSWORD_GMAIL`: Senha de aplicativo para o Gmail (usado para enviar o relatório por e-mail).
+- `GOOGLE_DRIVE_CREDENTIALS`: JSON string com as credenciais do service account do Google para acessar o Google Drive e Sheets (usado para carregar limites de categorias).
 
 ## Execução
 
@@ -72,16 +76,21 @@ O script realiza as seguintes operações:
    - Remove duplicatas considerando descrição, data e valor.
    - Mantém apenas as colunas relevantes para análise.
 
-6. **Análise e Categorização**
+6. **Carregamento de Limites de Categorias**
+   - O script tenta carregar os limites de gastos por categoria de uma planilha do Google Sheets chamada 'Financas2026' na aba 'Limites'.
+   - Os limites são lidos da coluna A (categorias) e coluna B (valores), começando da linha 1.
+   - Se a planilha não for encontrada ou houver erro na autenticação, o script usa limites padrão hardcoded.
+
+7. **Análise e Categorização**
    - Identifica transações parceladas e aquelas na última parcela.
    - Agrupa transações por categoria.
-   - Compara gastos com limites pré-definidos por categoria.
+   - Compara gastos com os limites carregados (do Google Sheets ou padrão).
 
-7. **Geração de Saídas**
+8. **Geração de Saídas**
    - Salva as transações processadas em arquivos CSV (`transacoes_atuais.csv`, `transacoes_passadas.csv`, `transacoes_ajustado.csv`).
    - (Opcional) Envia um e-mail com uma tabela detalhada dos gastos por categoria, incluindo:
      - Valor total gasto
-     - Limite por categoria
+     - Limite por categoria (carregado do Google Sheets ou padrão)
      - Porcentagem do limite utilizado
      - Quantidade de transações parceladas
      - Quantidade de transações na última parcela

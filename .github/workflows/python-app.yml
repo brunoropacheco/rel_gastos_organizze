@@ -67,6 +67,7 @@ jobs:
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         DB_NAME: ${{ env.DB_NAME }}
         PASSWORD_GMAIL: ${{ secrets.PASSWORD_GMAIL }}
+        GOOGLE_DRIVE_CREDENTIALS: ${{ secrets.GOOGLE_DRIVE_CREDENTIALS }}
         EMAIL_GMAIL: ${{ env.EMAIL_GMAIL }}
       run: |
         python src/analise_api_organizze.py
