@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     ou de um arquivo .env.
     """
     database_url: str = "postgresql://user:pass@localhost:5432/db"  # Deve ser sobrescrito pelo .env
+    webhook_api_key: str
+    token_organizze: str
     
     model_config = {"env_file": ".env"}
 

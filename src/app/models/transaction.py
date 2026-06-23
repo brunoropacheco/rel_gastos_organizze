@@ -14,7 +14,7 @@ class Transaction(SQLModel, table=True):
     amount_cents: int = Field(ge=0)
     date: datetime
     hash_signature: str = Field(unique=True, index=True, max_length=255)
-    source: Literal["webhook", "organizze"] = Field(default="webhook")
+    source: str = Field(default="webhook", max_length=50)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     def __str__(self):

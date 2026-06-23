@@ -44,10 +44,10 @@ story_location: /workspaces/rel_gastos_organizze/_bmad-output/implementation-art
 development_status:
   epic-1: in-progress
   1-1-configuracao-da-base-e-tabela-de-transacoes: done
-  1-2-criacao-do-webhook-autenticado-api-ios: ready-for-dev
-  epic-1-retrospective: optional
-  epic-2: backlog
-  2-1-sincronizacao-com-a-api-do-organizze: backlog
+  1-2-criacao-do-webhook-autenticado-api-ios: done
+  epic-1-retrospective: done
+  epic-2: in-progress
+  2-1-sincronizacao-com-a-api-do-organizze: done
   2-2-algoritmo-de-conciliacao-e-deduplicacao-anti-duplicidade: backlog
   epic-2-retrospective: optional
   epic-3: backlog

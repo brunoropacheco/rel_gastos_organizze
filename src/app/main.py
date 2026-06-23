@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+from src.app.api import webhooks
 from src.app.db.session import init_db
 
 @asynccontextmanager
@@ -17,6 +18,8 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan
 )
+
+app.include_router(webhooks.router)
 
 @app.get("/health")
 def health_check():
