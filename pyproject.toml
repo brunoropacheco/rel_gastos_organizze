@@ -1,0 +1,18 @@
+[project]
+name = "rel_gastos_organizze"
+version = "0.1.0"
+description = "A FastAPI backend for Organizze tracking and Apple Wallet webhook."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.136.3",
+    "sqlmodel>=0.0.38",
+    "alembic>=1.18.4",
+    "uvicorn>=0.30.0",
+    "psycopg2-binary>=2.9.9",
+    "pydantic-settings>=2.0.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

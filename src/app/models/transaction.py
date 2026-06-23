@@ -1,0 +1,21 @@
+from typing import Optional, Literal
+from datetime import datetime, timezone
+from sqlmodel import SQLModel, Field
+
+class Transaction(SQLModel, table=True):
+    """
+    Modelo base para transações financeiras consolidando dados do Organizze
+    e do Webhook (Apple Wallet).
+    """
+    __tablename__ = "transactions"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    description: str = Field(max_length=255)
+    amount_cents: int = Field(ge=0)
+    date: datetime
+    hash_signature: str = Field(unique=True, index=True, max_length=255)
+    source: Literal["webhook", "organizze"] = Field(default="webhook")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    
+    def __str__(self):
+        return f"Transaction(id={self.id}, desc={self.description}, amount_cents={self.amount_cents}, date={self.date})"
