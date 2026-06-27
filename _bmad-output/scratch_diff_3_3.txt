@@ -1,0 +1,172 @@
+diff --git a/src/app/core/config.py b/src/app/core/config.py
+index 8c33162..3a9eb2d 100644
+--- a/src/app/core/config.py
++++ b/src/app/core/config.py
+@@ -8,7 +8,8 @@ class Settings(BaseSettings):
+     database_url: str = "postgresql://user:pass@localhost:5432/db"  # Deve ser sobrescrito pelo .env
+     webhook_api_key: str
+     token_organizze: str
++    callmebot_user: str
+     
+-    model_config = {"env_file": ".env"}
++    model_config = {"env_file": ".env", "extra": "ignore"}
+ 
+ settings = Settings()
+diff --git a/src/app/services/notify_service.py b/src/app/services/notify_service.py
+new file mode 100644
+index 0000000..e3f1593
+--- /dev/null
++++ b/src/app/services/notify_service.py
+@@ -0,0 +1,89 @@
++import logging
++import urllib.parse
++from typing import Dict
++import httpx
++from src.app.core.config import settings
++
++logger = logging.getLogger(__name__)
++
++def format_telegram_message(stats: Dict[str, int]) -> str:
++    """
++    Formata as estatísticas financeiras em uma mensagem textual legível com emojis
++    para envio via Telegram.
++    
++    Args:
++        stats (Dict[str, int]): Dicionário com dados do intel_service
++        
++    Returns:
++        str: Mensagem formatada
++    """
++    def cents_to_brl(cents: int) -> str:
++        # Lidar com negativos
++        is_negative = cents < 0
++        abs_cents = abs(cents)
++        reais = abs_cents // 100
++        centavos = abs_cents % 100
++        # Formatação simplificada (ex: 3.000,00)
++        reais_str = f"{reais:,}".replace(",", ".")
++        val = f"R$ {reais_str},{centavos:02d}"
++        return f"-{val}" if is_negative else val
++
++    msg = (
++        "📊 *Relatório Burn-down Diário* 📊\n"
++        "\n"
++        f"💰 Orçamento Total: {cents_to_brl(stats['total_budget_cents'])}\n"
++        f"💸 Total Gasto: {cents_to_brl(stats['total_spent_cents'])}\n"
++        f"📉 Gastos Fixos Proj.: {cents_to_brl(stats['projected_fixed_expenses_cents'])}\n"
++        f"💵 Saldo Restante: {cents_to_brl(stats['remaining_budget_cents'])}\n"
++        "\n"
++        f"⏳ Dias Restantes: {stats['days_remaining']}\n"
++        f"🎯 Meta Diária: {cents_to_brl(stats['daily_target_cents'])}\n"
++    )
++    
++    if stats['remaining_budget_cents'] < 0:
++        msg += "\n🚨 *ALERTA:* Você ultrapassou o orçamento!"
++    elif stats['daily_target_cents'] < 0:
++        msg += "\n⚠️ *CUIDADO:* Meta diária negativa."
++    else:
++        msg += "\n🔥 Mantenha o foco!"
++        
++    return msg
++
++async def send_telegram_message(text: str) -> bool:
++    """
++    Envia uma mensagem via CallMeBot API (Telegram).
++    
++    Args:
++        text (str): Texto da mensagem
++        
++    Returns:
++        bool: True se sucesso, False caso contrário
++    """
++    user_alias = settings.callmebot_user
++    
++    if not user_alias:
++        logger.error("Credencial (usuário) do CallMeBot ausente.")
++        return False
++        
++    # URL encode text
++    encoded_text = urllib.parse.quote_plus(text)
++    url = f"https://api.callmebot.com/text.php?user={user_alias}&text={encoded_text}"
++    
++    try:
++        async with httpx.AsyncClient() as client:
++            response = await client.get(url, timeout=10.0)
++            response.raise_for_status()
++            logger.info("Mensagem Telegram enviada com sucesso.")
++            return True
++    except httpx.RequestError as exc:
++        # Censure sensitive data in the log
++        safe_url = str(exc.request.url).replace(user_alias, "[REDACTED]")
++        logger.error(f"Falha de conexão ao enviar Telegram: Falha ao acessar {safe_url}")
++        return False
++    except httpx.HTTPStatusError as exc:
++        safe_url = str(exc.request.url).replace(user_alias, "[REDACTED]")
++        logger.error(f"Erro HTTP {exc.response.status_code} ao enviar Telegram para {safe_url}")
++        return False
++    except Exception as exc:
++        logger.exception("Erro inesperado ao enviar Telegram (dados censurados).")
++        return False
+diff --git a/tests/services/test_notify_service.py b/tests/services/test_notify_service.py
+new file mode 100644
+index 0000000..f7a6c7a
+--- /dev/null
++++ b/tests/services/test_notify_service.py
+@@ -0,0 +1,57 @@
++import pytest
++from unittest.mock import patch, MagicMock
++import httpx
++from src.app.services.notify_service import format_telegram_message, send_telegram_message
++from src.app.core.config import settings
++
++def test_format_telegram_message():
++    stats = {
++        "total_budget_cents": 300000,
++        "total_spent_cents": 150000,
++        "projected_fixed_expenses_cents": 50000,
++        "remaining_budget_cents": 100000,
++        "days_remaining": 10,
++        "daily_target_cents": 10000
++    }
++    
++    message = format_telegram_message(stats)
++    
++    assert "3.000,00" in message
++    assert "1.500,00" in message
++    assert "500,00" in message
++    assert "1.000,00" in message
++    assert "10" in message
++    assert "100,00" in message
++    assert "🔥" in message or "📊" in message or "💰" in message # Emojis check
++
++@pytest.mark.asyncio
++@patch("src.app.services.notify_service.httpx.AsyncClient.get")
++async def test_send_telegram_message_success(mock_get):
++    mock_response = MagicMock()
++    mock_response.raise_for_status.return_value = None
++    mock_get.return_value = mock_response
++    
++    with patch.object(settings, 'callmebot_user', '123456789'):
++        
++        result = await send_telegram_message("Test Message")
++        assert result is True
++        
++        mock_get.assert_called_once()
++        url_called = mock_get.call_args[0][0]
++        assert "api.callmebot.com" in url_called
++        assert "user=123456789" in url_called
++        assert "text=Test+Message" in url_called
++
++@pytest.mark.asyncio
++@patch("src.app.services.notify_service.httpx.AsyncClient.get")
++async def test_send_telegram_message_failure_no_log_leak(mock_get, caplog):
++    mock_get.side_effect = httpx.RequestError("Network error", request=httpx.Request("GET", "https://api.callmebot.com/text.php?user=123456789&text=Test"))
++    
++    with patch.object(settings, 'callmebot_user', '123456789'):
++        
++        result = await send_telegram_message("Test Message")
++        assert result is False
++        
++        # Ensure the phone and apikey are not in the log output
++        for record in caplog.records:
++            assert "123456789" not in record.message

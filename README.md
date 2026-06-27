@@ -32,19 +32,27 @@ pip install -r requirements.txt
 
 ## Configuração
 
-Antes de executar o script, defina as seguintes variáveis de ambiente:
+Antes de executar o servidor da API, configure o seu arquivo `.env` na raiz do projeto com as seguintes variáveis:
 
-- `TOKEN_ORGANIZZE`: Token de autenticação para a API do Organizze.
-- `PASSWORD_GMAIL`: Senha de aplicativo para o Gmail (usado para enviar o relatório por e-mail).
-- `GOOGLE_DRIVE_CREDENTIALS`: JSON string com as credenciais do service account do Google para acessar o Google Drive e Sheets (usado para carregar limites de categorias).
+- `TOKEN_ORGANIZZE`: Token gerado nas configurações da sua conta do Organizze (engrenagem -> desenvolvedor/API). Usado para o script buscar faturas/metas.
+- `PASSWORD_GMAIL`: Senha de aplicativo do Gmail (necessário apenas se for rodar o script legado de envio de e-mail).
+- `WEBHOOK_API_KEY`: Uma senha/token inventada por você. Esse token será exigido no header `X-API-Key` de todas as requisições que chegarem no seu Webhook (ex: vindas do Apple Shortcuts) para garantir segurança.
+- `DATABASE_URL`: URL de conexão com o banco de dados. Para testes rápidos locais, recomendamos usar SQLite: `sqlite:///./local.db`.
+
+### Configurando o Banco de Dados
+Com as variáveis de ambiente configuradas, crie as tabelas do banco de dados (certifique-se de que o ambiente virtual está ativado e as dependências instaladas):
+```sh
+alembic upgrade head
+```
 
 ## Execução
 
-Para executar o script, utilize:
+Para iniciar o servidor FastAPI e poder receber requisições de webhooks:
 
 ```sh
-python src/analise_api_organizze.py
+uvicorn src.app.main:app --reload
 ```
+A API ficará disponível em `http://127.0.0.1:8000`. Você pode abrir `http://127.0.0.1:8000/docs` para ver e testar a documentação interativa (Swagger).
 
 ## Fluxo de Execução
 

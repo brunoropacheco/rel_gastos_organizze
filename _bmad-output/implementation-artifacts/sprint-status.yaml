@@ -35,23 +35,29 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-06-23T21:50:14Z
-last_updated: 2026-06-23T21:50:14Z
+last_updated: 2026-06-27T18:28:30Z
 project: rel_gastos_organizze
 project_key: NOKEY
 tracking_system: file-system
 story_location: /workspaces/rel_gastos_organizze/_bmad-output/implementation-artifacts
 
 development_status:
-  epic-1: in-progress
+  epic-1: done
   1-1-configuracao-da-base-e-tabela-de-transacoes: done
   1-2-criacao-do-webhook-autenticado-api-ios: done
   epic-1-retrospective: done
-  epic-2: in-progress
+  epic-2: done
   2-1-sincronizacao-com-a-api-do-organizze: done
-  2-2-algoritmo-de-conciliacao-e-deduplicacao-anti-duplicidade: backlog
+  2-2-algoritmo-de-conciliacao-e-deduplicacao-anti-duplicidade: done
   epic-2-retrospective: optional
-  epic-3: backlog
-  3-1-leitura-de-metas-e-limites: backlog
-  3-2-algoritmo-de-inteligencia-burn-rate-e-projecao: backlog
-  3-3-grafico-textual-e-disparo-via-whatsapp: backlog
+  epic-3: in-progress
+  3-1-leitura-de-metas-e-limites: done
+  3-2-algoritmo-de-inteligencia-burn-rate-e-projecao: done
+  3-3-grafico-textual-e-disparo-via-telegram: done
   epic-3-retrospective: optional
+  epic-4: in-progress
+  4-1-deploy-do-banco-de-dados-postgresql-no-railway: done
+  4-2-deploy-da-api-fastapi-no-railway-via-docker: backlog
+  4-3-configuracao-do-atalho-no-ios-apple-wallet: backlog
+  4-4-agendamento-das-rotinas-cron: backlog
+  epic-4-retrospective: backlog

@@ -24,9 +24,9 @@ Uso pessoal (Bruno), focado em automação de baixo esforço e alta relevância.
 *   **Indicador de Pressão:** Alerta quando múltiplas categorias sobem simultaneamente acima da média histórica.
 
 ### 4.2. Notificações e Interação (O Mensageiro)
-*   **WhatsApp via CallMeBot:** Notificações matinais com o "teto do dia" e alertas de desvio.
+*   **Telegram via CallMeBot:** Notificações matinais com o "teto do dia" e alertas de desvio.
 *   **Shadow Hook (Atalhos iOS):** [ASSUNÇÃO] Uso de webhooks disparados por automações de celular para captura instantânea de gastos.
-*   **Gráfico Burn-down Textual:** Visualização simplificada no WhatsApp `[Ideal: ===] [Real: ===]`.
+*   **Gráfico Burn-down Textual:** Visualização simplificada no Telegram `[Ideal: ===] [Real: ===]`.
 
 ### 4.3. Inteligência e Persistência
 *   **Arquétipo de Rotina:** Criação de um "budget fantasma" para gastos de rotina (café, transporte) que ocorrem em dias específicos.
@@ -45,5 +45,5 @@ Uso pessoal (Bruno), focado em automação de baixo esforço e alta relevância.
 ---
 
 ## 7. O que está fora do escopo (Non-Goals)
-*   Interface gráfica complexa (o foco é texto/WhatsApp).
+*   Interface gráfica complexa (o foco é texto/Telegram).
 *   Substituição total do app Organizze (o sistema é um complemento de inteligência).

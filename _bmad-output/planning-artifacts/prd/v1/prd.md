@@ -14,7 +14,7 @@ Este documento detalha os requisitos para o sistema de inteligência financeira 
 ## 2. Objetivos e Sucesso
 *   **Consciência em Tempo Real:** Capturar gastos no momento em que ocorrem via Apple Wallet.
 *   **Inteligência Preditiva:** Projetar o fechamento do mês baseado na "velocidade" (burn-rate) atual.
-*   **Interatividade de Baixo Custo:** Utilizar WhatsApp (CallMeBot) para interface primária.
+*   **Interatividade de Baixo Custo:** Utilizar Telegram (CallMeBot) para interface primária.
 *   **Métrica de Sucesso:** 100% dos gastos da Apple Wallet capturados e processados; Recebimento do relatório matinal até às 09:00.
 *   **Conciliação:** Os gastos da Apple Wallet vão aparecer na api do organizze depois. Precisa ser feita esta conciliação.
 
@@ -22,10 +22,10 @@ Este documento detalha os requisitos para o sistema de inteligência financeira 
 
 ### 3.1. O Gasto Instantâneo (Shadow Hook)
 *   **Protagonista:** Bruno realiza uma compra usando Apple Pay/Carteira.
-*   **Fluxo:** O iOS detecta a notificação -> Atalho do iOS extrai [Valor, Estabelecimento] -> Envia via HTTP POST para o servidor Python -> Python registra no Postgres e envia um "OK/Impacto" via WhatsApp.
+*   **Fluxo:** O iOS detecta a notificação -> Atalho do iOS extrai [Valor, Estabelecimento] -> Envia via HTTP POST para o servidor Python -> Python registra no Postgres e envia um "OK/Impacto" via Telegram.
 
 ### 3.2. O Relatório Matinal (The Navigator)
-*   **Fluxo:** Às 08:30, o servidor processa os gastos do mês -> Compara com os limites no Postgres -> Calcula a projeção de final de mês -> Envia um resumo no WhatsApp: "Bom dia! Você tem R$ X para gastar hoje para manter sua meta de aporte."
+*   **Fluxo:** Às 08:30, o servidor processa os gastos do mês -> Compara com os limites no Postgres -> Calcula a projeção de final de mês -> Envia um resumo no Telegram: "Bom dia! Você tem R$ X para gastar hoje para manter sua meta de aporte."
 
 ## 4. Requisitos Funcionais (FRs)
 
@@ -38,7 +38,7 @@ Este documento detalha os requisitos para o sistema de inteligência financeira 
 ### 4.2. Inteligência de Gastos
 *   **FR-05:** Calcular o **Burn-Rate Velocity** (Média de gastos diários vs. Dias restantes).
 *   **FR-06:** Projetar o saldo final de mês considerando gastos fixos já lançados no Organizze.
-*   **FR-07:** Gerar o **Gráfico Burn-down Textual** para envio via WhatsApp.
+*   **FR-07:** Gerar o **Gráfico Burn-down Textual** para envio via Telegram.
 
 ### 4.3. Persistência e Configuração
 *   **FR-08:** Armazenar todas as transações em um banco de dados **PostgreSQL**.
@@ -56,9 +56,9 @@ Este documento detalha os requisitos para o sistema de inteligência financeira 
 ## 6. Riscos e Dependências
 *   **API Organizze:** Limites de rate-limit ou instabilidade.
 *   **iOS Shortcuts:** Mudanças no sistema operacional que possam quebrar a leitura de notificações da Carteira.
-*   **CallMeBot:** Dependência de serviço de terceiro gratuito para o WhatsApp.
+*   **CallMeBot:** Dependência de serviço de terceiro gratuito para o Telegram.
 
 ## 7. Próximos Passos (Fases)
 *   **Fase 1:** Setup do Postgres e sincronização básica com Organizze.
 *   **Fase 2:** Implementação do Webhook e Integração Apple Wallet.
-*   **Fase 3:** Lógica de inteligência (Burn-rate) e Notificações WhatsApp.
+*   **Fase 3:** Lógica de inteligência (Burn-rate) e Notificações Telegram.

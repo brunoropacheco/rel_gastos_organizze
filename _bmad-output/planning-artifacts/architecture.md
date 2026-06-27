@@ -38,7 +38,7 @@ Disponibilidade 24/7 é crítica para o Webhook. Segurança é mandatória: HTTP
 ### Technical Constraints & Dependencies
 - Python 3.x com Pandas/Numpy.
 - PostgreSQL para persistência.
-- APIs Externas: Organizze (v2), CallMeBot (WhatsApp).
+- APIs Externas: Organizze (v2), CallMeBot (Telegram).
 - iOS Shortcuts como gatilho de entrada.
 
 ### Cross-Cutting Concerns Identified
@@ -80,7 +80,7 @@ Disponibilidade 24/7 é crítica para o Webhook. Segurança é mandatória: HTTP
 ### API & Communication Patterns
 - **Framework:** FastAPI v0.136.3+.
 - **Pattern:** REST para recepção de webhooks e trigger de relatórios.
-- **Dispatch:** Síncrono para WhatsApp (CallMeBot) integrado ao fluxo.
+- **Dispatch:** Síncrono para Telegram (CallMeBot) integrado ao fluxo.
 
 ## Implementation Patterns & Consistency Rules
 
@@ -166,7 +166,7 @@ Todas as tecnologias escolhidas (Python 3.12, FastAPI, SQLModel) pertencem ao me
 ### Implementation Handoff
 **AI Agent Guidelines:**
 - Priorizar a implementação do `models/transaction.py` e o `SyncService`.
-- Todas as mensagens para o usuário (WhatsApp) devem seguir o tom definido no PRD.
+- Todas as mensagens para o usuário (Telegram) devem seguir o tom definido no PRD.
 - Seguir rigorosamente o padrão de docstrings em Português.
 
 **First Implementation Priority:**

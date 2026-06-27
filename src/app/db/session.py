@@ -2,10 +2,16 @@ from sqlmodel import SQLModel, create_engine, Session
 from src.app.core.config import settings
 
 # Engine global da aplicação
+connect_args = {}
+if "postgres" in settings.database_url:
+    connect_args["sslmode"] = "require"
+elif "sqlite" in settings.database_url:
+    connect_args["check_same_thread"] = False
+
 engine = create_engine(
     settings.database_url, 
     echo=False,
-    connect_args={"sslmode": "require"}
+    connect_args=connect_args
 )
 
 def init_db():

@@ -1,0 +1,5 @@
+[workflow]
+
+persistent_facts = [
+  "CRÍTICO: Ao finalizar a implementação de uma história, PARE. Explique ao usuário exatamente como rodar e testar a nova funcionalidade localmente e exija que ele valide e confirme explicitamente o sucesso antes de atualizar o status da história para 'done' e finalizar o ciclo."
+]

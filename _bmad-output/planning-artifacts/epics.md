@@ -21,7 +21,7 @@ FR-03: O sistema deve ler notificações da Apple Wallet via automação de "Ata
 FR-04: Conciliação Automática: O sistema deve identificar e "mesclar" gastos capturados via Webhook com os que aparecerem posteriormente na API do Organizze (evitando duplicidade), usando valor, data e similaridade de descrição.
 FR-05: Calcular o Burn-Rate Velocity (Média de gastos diários vs. Dias restantes).
 FR-06: Projetar o saldo final de mês considerando gastos fixos já lançados no Organizze.
-FR-07: Gerar o Gráfico Burn-down Textual para envio via WhatsApp.
+FR-07: Gerar o Gráfico Burn-down Textual para envio via Telegram.
 FR-08: Armazenar todas as transações em um banco de dados PostgreSQL.
 FR-09: O sistema deve ler os limites de categoria diretamente de uma tabela de configuração no PostgreSQL.
 
@@ -42,7 +42,7 @@ NFR-07 (Backup e Recuperação): O banco de dados deve possuir rotina de backup 
 - Model Strategy: Single table `Transaction` consolidating Organizze and Webhook data.
 - Deduplication: Hash signature (`valor + data + descrição`).
 - Framework: FastAPI v0.136.3+
-- Dispatch: Synchronous for WhatsApp (CallMeBot) integrated into flow.
+- Dispatch: Synchronous for Telegram (CallMeBot) integrated into flow.
 - Project Directory Structure initialized using the defined `rel_gastos_organizze` layout.
 
 ### UX Design Requirements
@@ -57,13 +57,17 @@ FR-03: Epic 1 - Leitura da Apple Wallet
 FR-04: Epic 2 - Conciliação Automática
 FR-05: Epic 3 - Burn-Rate Velocity
 FR-06: Epic 3 - Projeção de Saldo Mensal
-FR-07: Epic 3 - Gráfico via WhatsApp
+FR-07: Epic 3 - Gráfico via Telegram
 FR-08: Epic 1 - Armazenamento no Postgres
 FR-09: Epic 3 - Leitura de Limites
 
 ## Epic List
 
-### Epic 1: Captura Instantânea de Gastos (O Shadow Hook)
+#### Epic 4: Implantação e Operação (Go-Live)
+O sistema é colocado em produção no Railway, conectando o banco de dados, a API e o Atalho do iOS para uso no mundo real.
+**FRs covered:** NFR-01, NFR-02, NFR-03, NFR-04, NFR-05, NFR-06, NFR-07
+
+## Epic 1: Captura Instantânea de Gastos (O Shadow Hook)
 O usuário consegue registrar seus gastos instantaneamente pelo Apple Wallet para não perder o controle do dinheiro em tempo real.
 **FRs covered:** FR-01, FR-03, FR-08
 
@@ -72,8 +76,12 @@ O sistema integra de forma inteligente seus gastos instantâneos com a consolida
 **FRs covered:** FR-02, FR-04
 
 ### Epic 3: Inteligência Financeira e Relatório Matinal (O Navigator)
-O usuário recebe diariamente no WhatsApp uma análise preditiva mostrando quanto ainda pode gastar por dia, garantindo o alcance das metas.
+O usuário recebe diariamente no Telegram uma análise preditiva mostrando quanto ainda pode gastar por dia, garantindo o alcance das metas.
 **FRs covered:** FR-05, FR-06, FR-07, FR-09
+
+### Epic 4: Implantação e Operação (Go-Live)
+O sistema é colocado em produção no Railway, conectando o banco de dados, a API e o Atalho do iOS para uso no mundo real.
+**FRs covered:** NFR-01, NFR-02, NFR-03, NFR-04, NFR-05, NFR-06, NFR-07
 
 ## Epic 1: Captura Instantânea de Gastos (O Shadow Hook)
 
@@ -149,7 +157,7 @@ So that os gastos que já foram recebidos instantaneamente pelo Apple Wallet nã
 
 ## Epic 3: Inteligência Financeira e Relatório Matinal (O Navigator)
 
-O usuário recebe diariamente no WhatsApp uma análise preditiva mostrando quanto ainda pode gastar por dia, garantindo o alcance das metas.
+O usuário recebe diariamente no Telegram uma análise preditiva mostrando quanto ainda pode gastar por dia, garantindo o alcance das metas.
 
 ### Story 3.1: Leitura de Metas e Limites
 
@@ -177,11 +185,11 @@ So that o sistema saiba matematicamente a velocidade dos gastos e se o limite do
 **Then** deve determinar o total gasto, subtrair do limite mensal e subtrair os gastos fixos projetados para calcular o que sobra
 **And** dividir o restante pelos dias que faltam no mês para determinar a meta de gasto diária.
 
-### Story 3.3: Gráfico Textual e Disparo via WhatsApp
+### Story 3.3: Gráfico Textual e Disparo via Telegram
 
 As a serviço de notificação (`notify_service`),
 I want gerar uma visualização em texto (Burn-down) e enviar via API do CallMeBot,
-So that o usuário receba seu alerta matinal (ou sob demanda) de forma legível no WhatsApp.
+So that o usuário receba seu alerta matinal (ou sob demanda) de forma legível no Telegram.
 
 **Acceptance Criteria:**
 
@@ -193,3 +201,56 @@ So that o usuário receba seu alerta matinal (ou sob demanda) de forma legível 
 **Given** uma falha de conexão com o CallMeBot
 **When** tentar o disparo
 **Then** não deve expor dados sensíveis nos logs do sistema.
+
+
+## Epic 4: Implantação e Operação (Go-Live)
+
+O sistema é colocado em produção no Railway, conectando o banco de dados, a API e o Atalho do iOS para uso no mundo real.
+
+### Story 4.1: Deploy do Banco de Dados PostgreSQL no Railway
+
+As a administrador do sistema,
+I want provisionar um banco de dados PostgreSQL no Railway e executar as migrações,
+So that o aplicativo tenha um banco de dados em produção pronto para receber dados.
+
+**Acceptance Criteria:**
+**Given** uma conta no Railway
+**When** provisionarmos o banco
+**Then** devemos ter a URL de conexão (DATABASE_URL)
+**And** devemos rodar o Alembic para criar as tabelas `Transaction` e `Limits`.
+
+### Story 4.2: Deploy da API FastAPI no Railway via Docker
+
+As a administrador do sistema,
+I want fazer o deploy do código da aplicação no Railway usando o Dockerfile,
+So that a API fique publicamente acessível via HTTPS de forma contínua.
+
+**Acceptance Criteria:**
+**Given** o código atualizado no repositório
+**When** o Railway fizer o build e deploy
+**Then** a API deve estar online e respondendo na rota root e `/docs`
+**And** as variáveis de ambiente devem estar devidamente configuradas no painel do Railway.
+
+### Story 4.3: Configuração do Atalho no iOS (Apple Wallet)
+
+As a usuário final,
+I want configurar um Atalho (Shortcut) no iOS para capturar as notificações da Apple Wallet,
+So that o atalho envie os dados automaticamente para a API em produção (Webhook).
+
+**Acceptance Criteria:**
+**Given** o endpoint em produção e o API Key
+**When** o celular receber uma notificação de compra da Apple Wallet
+**Then** o atalho deve extrair o valor, loja e data
+**And** fazer um POST HTTP autenticado para a API do Railway.
+
+### Story 4.4: Agendamento das Rotinas (CRON)
+
+As a sistema,
+I want ter as rotinas de sincronização do Organizze e envio do Telegram agendadas para rodar automaticamente,
+So that eu receba meu relatório todo dia de manhã sem intervenção manual.
+
+**Acceptance Criteria:**
+**Given** os scripts de rotina criados
+**When** o horário agendado chegar (ex: 08:00 AM)
+**Then** o sistema (Railway CronJobs, GitHub Actions ou agendador interno) deve executar o sync
+**And** disparar a mensagem via CallMeBot.

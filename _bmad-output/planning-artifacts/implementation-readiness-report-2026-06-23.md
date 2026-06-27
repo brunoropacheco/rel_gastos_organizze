@@ -39,7 +39,7 @@ FR3: O sistema deve ler notificações da Apple Wallet via automação de "Atalh
 FR4: **Conciliação Automática:** O sistema deve identificar e "mesclar" gastos capturados via Webhook com os que aparecerem posteriormente na API do Organizze (evitando duplicidade), usando valor, data e similaridade de descrição.
 FR5: Calcular o **Burn-Rate Velocity** (Média de gastos diários vs. Dias restantes).
 FR6: Projetar o saldo final de mês considerando gastos fixos já lançados no Organizze.
-FR7: Gerar o **Gráfico Burn-down Textual** para envio via WhatsApp.
+FR7: Gerar o **Gráfico Burn-down Textual** para envio via Telegram.
 FR8: Armazenar todas as transações em um banco de dados **PostgreSQL**.
 FR9: O sistema deve ler os limites de categoria diretamente de uma tabela de configuração no PostgreSQL.
 
@@ -65,4 +65,4 @@ Total NFRs: 7
 
 ### PRD Completeness Assessment
 
-O PRD está bem estruturado e cobre claramente as necessidades funcionais e não-funcionais. A ausência de UX é compreensível dada a natureza do projeto focado em backend, webhook, e interações por WhatsApp. As regras de conciliação automática e cálculos de projeção estão descritas com clareza.
+O PRD está bem estruturado e cobre claramente as necessidades funcionais e não-funcionais. A ausência de UX é compreensível dada a natureza do projeto focado em backend, webhook, e interações por Telegram. As regras de conciliação automática e cálculos de projeção estão descritas com clareza.

@@ -1,0 +1,25 @@
+diff --git a/src/app/models/__init__.py b/src/app/models/__init__.py
+index e69de29..1135a31 100644
+--- a/src/app/models/__init__.py
++++ b/src/app/models/__init__.py
+@@ -0,0 +1,4 @@
++from .transaction import Transaction
++from .limit import CategoryLimit
++
++__all__ = ["Transaction", "CategoryLimit"]
+diff --git a/src/app/models/limit.py b/src/app/models/limit.py
+new file mode 100644
+index 0000000..a81f018
+--- /dev/null
++++ b/src/app/models/limit.py
+@@ -0,0 +1,10 @@
++from typing import Optional
++from sqlmodel import SQLModel, Field
++
++class CategoryLimit(SQLModel, table=True):
++    """
++    Representa o limite de gastos mensal configurado para uma categoria.
++    """
++    id: Optional[int] = Field(default=None, primary_key=True)
++    category: str = Field(index=True, unique=True, description="Nome da categoria (ex: 'Alimentacao')")
++    limit_cents: int = Field(description="Valor do limite em centavos para a categoria")

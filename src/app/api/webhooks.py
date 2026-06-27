@@ -14,20 +14,7 @@ router = APIRouter(
     dependencies=[Depends(verify_webhook_api_key)]
 )
 
-def normalize_string(text: str) -> str:
-    """
-    Normaliza a string: remove acentos, substitui espaços e hífens por underscore,
-    converte para minúsculas e remove espaços das pontas.
-    """
-    if not text:
-        return ""
-    return unidecode(text).replace('-', '_').replace(' ', '_').lower().strip()
-
-def generate_hash_signature(amount_cents: int, date_str: str, description: str) -> str:
-    """Gera o hash_signature com base em valor, data completa e descrição normalizada."""
-    norm_desc = normalize_string(description)
-    raw = f"{amount_cents}|{date_str}|{norm_desc}"
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+from src.app.core.utils import generate_hash_signature
 
 @router.post("", response_model=TransactionResponse, status_code=status.HTTP_201_CREATED)
 def create_transaction(
@@ -39,8 +26,7 @@ def create_transaction(
     Realiza o cálculo de deduplicação antes da inserção.
     """
     # Calcula assinatura
-    date_str = payload.date.isoformat()
-    signature = generate_hash_signature(payload.amount_cents, date_str, payload.description)
+    signature = generate_hash_signature(payload.amount_cents, payload.date, payload.description)
     
     # Verifica duplicidade no banco
     statement = select(Transaction).where(Transaction.hash_signature == signature)
