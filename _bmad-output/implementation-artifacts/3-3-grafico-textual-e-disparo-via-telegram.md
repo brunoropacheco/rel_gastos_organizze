@@ -19,6 +19,7 @@ So that o usuário receba seu alerta matinal (ou sob demanda) de forma legível 
 1. **Given** os cálculos consolidados da inteligência financeira (via `intel_service.py`)
    **When** o envio for acionado
    **Then** deve formatar o sumário com emojis/ASCII simulando um gráfico burn-down textualmente
+   **And** incluir no sumário a contagem de transações parceladas e quantas delas estão na última parcela (para dar visibilidade de alívio no orçamento futuro)
    **And** disparar uma requisição HTTP via TLS 1.2+ para a API do CallMeBot, autenticando pela variável de ambiente.
 2. **Given** uma falha de conexão com o CallMeBot
    **When** tentar o disparo

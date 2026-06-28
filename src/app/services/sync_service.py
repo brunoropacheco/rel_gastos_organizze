@@ -17,6 +17,12 @@ async def run_sync_and_reconcile(session: Session):
         return
     
     for org_tx in organizze_txs:
+        # Pular ignorados
+        if org_tx.notes and "ignorar" in org_tx.notes.lower():
+            continue
+        if "deb._autom._de_fatura" in org_tx.description.lower():
+            continue
+            
         # org_tx.date is datetime
         signature = generate_hash_signature(org_tx.amount_cents, org_tx.date, org_tx.description)
         
@@ -37,7 +43,9 @@ async def run_sync_and_reconcile(session: Session):
                 amount_cents=org_tx.amount_cents,
                 date=org_tx.date,
                 source="organizze",
-                hash_signature=signature
+                hash_signature=signature,
+                installment=org_tx.installment,
+                total_installments=org_tx.total_installments
             )
             session.add(new_tx)
             

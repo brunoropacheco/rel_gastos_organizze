@@ -25,6 +25,14 @@ so that possamos ter na base os gastos manuais, parcelados e despesas fixas ofic
    **When** a rotina tentar rodar
    **Then** deve gerar um erro no log de forma graciosa sem travar o servidor (resiliência).
 
+3. **Given** uma transação que contenha a palavra 'ignorar' no campo 'notes' ou 'deb._autom._de_fatura' na descrição
+   **When** a transação for processada na sincronização
+   **Then** ela deve ser sumariamente descartada ou marcada para não entrar nos cálculos.
+
+4. **Given** uma transação que seja uma compra parcelada
+   **When** for sincronizada
+   **Then** o sistema deve registrar a parcela atual e o total de parcelas (`installment` e `total_installments`).
+
 ## Tasks / Subtasks
 
 - [x] Task 1 (AC: 1): Adicionar `TOKEN_ORGANIZZE` às configurações (`src/app/core/config.py`).

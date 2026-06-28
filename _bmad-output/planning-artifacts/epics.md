@@ -134,6 +134,14 @@ So that possamos ter na base os gastos manuais, parcelados e despesas fixas ofic
 **Then** o sistema faz uma requisição HTTP segura à API v2 do Organizze
 **And** converte o payload retornado para uma estrutura compatível pronta para análise.
 
+**Given** uma transação que contenha a palavra 'ignorar' no campo 'notes' ou 'deb._autom._de_fatura' na descrição
+**When** a transação for processada na sincronização
+**Then** ela deve ser sumariamente descartada ou marcada para não entrar nos cálculos.
+
+**Given** uma transação que seja uma compra parcelada
+**When** for sincronizada
+**Then** o sistema deve registrar a parcela atual e o total de parcelas (`installment` e `total_installments`).
+
 **Given** falha de rede ou rate-limit na API do Organizze
 **When** a rotina tentar rodar
 **Then** deve gerar um erro no log de forma graciosa sem travar o servidor (resiliência).
@@ -183,6 +191,7 @@ So that o sistema saiba matematicamente a velocidade dos gastos e se o limite do
 **Given** a soma de transações na base de dados
 **When** a rotina realizar o cálculo
 **Then** deve determinar o total gasto, subtrair do limite mensal e subtrair os gastos fixos projetados para calcular o que sobra
+**And** ao somar os gastos, deve respeitar a **data de fechamento da fatura** dos cartões (ex: dia 10), considerando apenas as transações (e parcelas) que caem na fatura do mês atual.
 **And** dividir o restante pelos dias que faltam no mês para determinar a meta de gasto diária.
 
 ### Story 3.3: Gráfico Textual e Disparo via Telegram
@@ -196,6 +205,7 @@ So that o usuário receba seu alerta matinal (ou sob demanda) de forma legível 
 **Given** os cálculos consolidados da inteligência financeira
 **When** o envio for acionado
 **Then** deve formatar o sumário com emojis/ASCII simulando um gráfico burn-down
+**And** incluir no sumário a contagem de transações parceladas e quantas delas estão na última parcela (para dar visibilidade de alívio no orçamento futuro)
 **And** disparar uma requisição HTTP via TLS 1.2+ para a API do CallMeBot, autenticando pela variável de ambiente
 
 **Given** uma falha de conexão com o CallMeBot

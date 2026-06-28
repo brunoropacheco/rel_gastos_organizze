@@ -17,12 +17,9 @@ async def sync_transactions() -> List[OrganizzeTransaction]:
     Sincroniza transações da API v2 do Organizze.
     Lida com rate-limits e erros de rede graciosamente.
     """
-    # Encode for Basic Auth
-    token_bytes = settings.token_organizze.encode("utf-8")
-    base64_auth = base64.b64encode(token_bytes).decode("utf-8")
-    
+    # O token no .env já está em base64 (email:token)
     headers = {
-        "Authorization": f"Basic {base64_auth}",
+        "Authorization": f"Basic {settings.token_organizze}",
         "User-Agent": "rel_gastos_organizze/0.1"
     }
 

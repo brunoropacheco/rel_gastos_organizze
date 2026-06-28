@@ -53,6 +53,9 @@ def format_telegram_message(stats: Dict[str, int]) -> str:
         "\n"
         f"⏳ Dias Restantes: {days}\n"
         f"🎯 Meta Diária: {cents_to_brl(target)}\n"
+        "\n"
+        f"💳 Transações Parceladas: {stats.get('qtde_parcelado', 0)}\n"
+        f"✅ Na última parcela: {stats.get('qtde_ultima_parcela', 0)}\n"
     )
     
     if rem < 0:
