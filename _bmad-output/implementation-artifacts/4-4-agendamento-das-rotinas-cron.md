@@ -1,10 +1,10 @@
 ---
-baseline_commit: "latest"
+baseline_commit: "61115f3bbd9c6351b446f86b00b65de893434e24"
 ---
 
 # Story 4.4: Agendamento das Rotinas (CRON)
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -24,10 +24,10 @@ So that eu receba meu relatório 2 vezes ao dia (7h da manhã e 21h) sem interve
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Avaliar a melhor estratégia para o agendamento no contexto da nossa arquitetura (ex: usar Cron nativo do Railway para chamar uma rota POST oculta na API, ou criar um script Python avulso acionado via comando do Docker, ou usar biblioteca interna como APScheduler/Celery). Como estamos num único contêiner no Railway rodando Uvicorn, o ideal pode ser expor um endpoint restrito ou usar o recurso de Cron Job do Railway se disponível (ou agendador em background no FastAPI).
-- [ ] Task 2: Configurar o agendamento Cron para a sincronização e os envios programados. Os horários definidos pelo usuário são 07:00 e 21:00 (fuso horário local - importante checar o timezone do servidor do Railway).
-- [ ] Task 3: Criar um mecanismo na rotina para orquestrar a execução sequencial: 1º Rodar o Sync (para baixar novos dados do Organizze), 2º Rodar o Intel/Notify (para gerar o gráfico com os dados mais recentes).
-- [ ] Task 4: Realizar um teste manual do script/endpoint de agendamento para validar que a cadeia de execução roda do início ao fim sem bloquear a thread principal da API.
+- [x] Task 1: Avaliar a melhor estratégia para o agendamento no contexto da nossa arquitetura (ex: usar Cron nativo do Railway para chamar uma rota POST oculta na API, ou criar um script Python avulso acionado via comando do Docker, ou usar biblioteca interna como APScheduler/Celery). Como estamos num único contêiner no Railway rodando Uvicorn, o ideal pode ser expor um endpoint restrito ou usar o recurso de Cron Job do Railway se disponível (ou agendador em background no FastAPI).
+- [x] Task 2: Configurar o agendamento Cron para a sincronização e os envios programados. Os horários definidos pelo usuário são 07:00 e 21:00 (fuso horário local - importante checar o timezone do servidor do Railway).
+- [x] Task 3: Criar um mecanismo na rotina para orquestrar a execução sequencial: 1º Rodar o Sync (para baixar novos dados do Organizze), 2º Rodar o Intel/Notify (para gerar o gráfico com os dados mais recentes).
+- [x] Task 4: Realizar um teste manual do script/endpoint de agendamento para validar que a cadeia de execução roda do início ao fim sem bloquear a thread principal da API.
 
 ## Dev Notes
 
@@ -50,7 +50,9 @@ So that eu receba meu relatório 2 vezes ao dia (7h da manhã e 21h) sem interve
 ## Dev Agent Record
 
 ### Agent Model Used
-(To be filled during dev-story)
+Gemini 3.1 Pro (High)
 
 ### Completion Notes List
-- (To be filled during dev-story)
+- Desenvolvido script avulso `src/scripts/run_cron.py` para ser chamado pelo Railway Cron.
+- O script resolve as dependências de banco de dados convertendo URLs síncronas para o formato do asyncpg automaticamente.
+- Orquestração de Sync seguido de cálculo Intel e envio Notify implementada e testada.

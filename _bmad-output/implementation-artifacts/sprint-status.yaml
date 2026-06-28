@@ -50,14 +50,14 @@ development_status:
   2-1-sincronizacao-com-a-api-do-organizze: done
   2-2-algoritmo-de-conciliacao-e-deduplicacao-anti-duplicidade: done
   epic-2-retrospective: optional
-  epic-3: in-progress
+  epic-3: done
   3-1-leitura-de-metas-e-limites: done
   3-2-algoritmo-de-inteligencia-burn-rate-e-projecao: done
   3-3-grafico-textual-e-disparo-via-telegram: done
   epic-3-retrospective: optional
-  epic-4: in-progress
+  epic-4: done
   4-1-deploy-do-banco-de-dados-postgresql-no-railway: done
   4-2-deploy-da-api-fastapi-no-railway-via-docker: done
   4-3-configuracao-do-atalho-no-ios-apple-wallet: done
-  4-4-agendamento-das-rotinas-cron: ready-for-dev
-  epic-4-retrospective: backlog
+  4-4-agendamento-das-rotinas-cron: done
+  epic-4-retrospective: optional
