@@ -99,7 +99,7 @@ async def get_current_month_spent(session: AsyncSession, reference_date: datetim
         result = await session.exec(statement)
         transactions = result.all()
         
-        total = sum(tx.amount_cents for tx in transactions)
+        total = abs(sum(tx.amount_cents for tx in transactions))
         
         spent_by_category = {}
         qtde_parcelado = 0
@@ -114,6 +114,10 @@ async def get_current_month_spent(session: AsyncSession, reference_date: datetim
                 qtde_parcelado += 1
                 if tx.installment == tx.total_installments:
                     qtde_ultima_parcela += 1
+                    
+        # Converte valores gastos para positivo (despesas vêm negativas do Organizze)
+        for cat in spent_by_category:
+            spent_by_category[cat] = abs(spent_by_category[cat])
                     
         return {
             "total": total,
