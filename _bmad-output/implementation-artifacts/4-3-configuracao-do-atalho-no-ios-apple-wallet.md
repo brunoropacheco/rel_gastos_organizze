@@ -1,10 +1,10 @@
 ---
-baseline_commit: "latest"
+baseline_commit: "f7ead9d22e30e251a3ea4e8ddbef3526c353a7ec"
 ---
 
 # Story 4.3: Configuração do Atalho no iOS (Apple Wallet)
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -23,11 +23,11 @@ So that o atalho envie os dados automaticamente para a API em produção (Webhoo
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Obter a URL pública do Railway para a rota de webhook (ex: `https://<dominio>.railway.app/api/webhooks/transactions`).
-- [ ] Task 2: Criar uma Automação Pessoal no app "Atalhos" do iOS acionada por notificações de "Transação" ou mensagem do "Apple Wallet".
-- [ ] Task 3: Configurar blocos de extração no Atalho (Regex ou Texto) para extrair Valor (centavos), Descrição (estabelecimento) e Data.
-- [ ] Task 4: Adicionar o bloco "Obter Conteúdo do URL" (HTTP POST) passando o header `X-API-Key` (configurado com a mesma chave do Railway) e o Payload JSON.
-- [ ] Task 5: Realizar uma compra ou envio de teste via atalho e confirmar se a transação aparece no banco de dados e no log da API.
+- [x] Task 1: Obter a URL pública do Railway para a rota de webhook (ex: `https://<dominio>.railway.app/api/webhooks/transactions`).
+- [x] Task 2: Criar uma Automação Pessoal no app "Atalhos" do iOS acionada por notificações de "Transação" ou mensagem do "Apple Wallet".
+- [x] Task 3: Configurar blocos de extração no Atalho (Regex ou Texto) para extrair Valor (centavos), Descrição (estabelecimento) e Data.
+- [x] Task 4: Adicionar o bloco "Obter Conteúdo do URL" (HTTP POST) passando o header `X-API-Key` (configurado com a mesma chave do Railway) e o Payload JSON.
+- [x] Task 5: Realizar uma compra ou envio de teste via atalho e confirmar se a transação aparece no banco de dados e no log da API.
 
 ## Dev Notes
 
@@ -60,7 +60,9 @@ So that o atalho envie os dados automaticamente para a API em produção (Webhoo
 ## Dev Agent Record
 
 ### Agent Model Used
-(To be filled during dev-story)
+Gemini 3.1 Pro (High)
 
 ### Completion Notes List
-- (To be filled during dev-story)
+- O atalho foi configurado com sucesso no iOS do usuário.
+- Para evitar erros do tipo `input is too short` no parse do `date` na API, usamos a variável "Data Atual" do Atalhos formatada explicitamente como ISO 8601 no Payload JSON.
+- O webhook está oficialmente validado e integrando Apple Wallet ao PostgreSQL no Railway!
