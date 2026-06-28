@@ -67,3 +67,13 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Update when technology stack changes.
 - Review quarterly for outdated rules.
 - Remove rules that become obvious over time.
+### Novas Regras de Negócio (Descobertas em 27/06/2026)
+
+- **Filtro de Cartões de Crédito:** A sincronização com o Organizze deve buscar EXCLUSIVAMENTE os lançamentos associados aos cartões de crédito monitorados (IDs `1840776` para Santander AA e `2423452` para Itaú Azul). Despesas de conta corrente, PIX, etc., são ignoradas.
+- **Valores Absolutos:** Todas as despesas importadas do Organizze vêm com sinal negativo. O algoritmo deve convertê-las para valor absoluto (`abs()`) antes de qualquer soma ou subtração.
+- **Estratégia de Sincronização de Faturas:** Para garantir a correta alocação de parcelas e transações movidas manualmente entre faturas, NÃO se deve usar o endpoint de `/transactions` filtrando pela data da compra original. Em vez disso, a sincronização deve:
+    1. Buscar as **faturas** (`/invoices`) de cada cartão dentro de uma janela larga de tempo (ex: -90 dias a +60 dias).
+    2. Filtrar a fatura correta correspondente ao ciclo de faturamento desejado.
+    3. Extrair as transações listadas **dentro dessa fatura específica**, salvando no banco a `invoice_date` (data de vencimento da fatura).
+- **Ciclo de Fechamento (Dia 10):** O fechamento padrão é o dia 10 de cada mês. As consultas de *Burn Rate* devem somar transações baseadas na fatura associada àquele mês (a `invoice_date`), e não pela data exata da compra.
+- **Limites Hardcoded:** Como fallback primário (ou substituição ao Google Sheets caso não configurado), o sistema possui uma lista estática atualizada com 17 categorias de gastos (Alimentacao casa: 1200, Casa: 2500, Viagem: 2600, etc.) embutida na aplicação.

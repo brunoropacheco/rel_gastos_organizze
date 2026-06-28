@@ -19,9 +19,9 @@ Uso pessoal (Bruno), focado em automação de baixo esforço e alta relevância.
 ## 4. Funcionalidades Principais (Conceitos do Brainstorming)
 
 ### 4.1. Estação Meteorológica Financeira (Previsão)
-*   **Burn-Rate Velocity:** Monitoramento da velocidade de gasto em relação ao tempo restante do mês/fatura.
-*   **Projetor de Consequências:** Mostrar o impacto de um gasto hoje no aporte final planejado para o mês.
-*   **Indicador de Pressão:** Alerta quando múltiplas categorias sobem simultaneamente acima da média histórica.
+*   **Burn-Rate Velocity (Focado em Cartões):** Monitoramento da velocidade de gasto estritamente ligado aos cartões de crédito monitorados (Itaú Azul, Santander AA). Os cálculos são baseados no mês de faturamento da fatura (dia 10) e usam as faturas diretamente para englobar parcelas e transações retroativas.
+*   **Projetor de Consequências:** Mostrar o impacto de um gasto hoje no aporte final planejado para o mês (utilizando valores absolutos, já que a API os envia negativos).
+*   **Indicador de Pressão:** Alerta quando múltiplas categorias sobem simultaneamente acima da média histórica. Limites estáticos são armazenados localmente como fallback (ex: Casa 2500, Viagem 2600).
 
 ### 4.2. Notificações e Interação (O Mensageiro)
 *   **Telegram via CallMeBot:** Notificações matinais com o "teto do dia" e alertas de desvio.

@@ -18,8 +18,8 @@ So that o sistema saiba matematicamente a velocidade dos gastos e se o limite do
 
 2. **Given** a soma de transações na base de dados (do mês corrente)
    **When** a rotina realizar o cálculo
-   **Then** deve determinar o total gasto, subtrair do limite mensal total e subtrair os gastos fixos projetados para calcular o que sobra
-   **And** ao somar os gastos, deve respeitar a **data de fechamento da fatura** dos cartões (ex: dia 10), considerando apenas as transações (e parcelas) que caem na fatura do mês atual.
+   **Then** deve determinar o total gasto utilizando o valor absoluto (`abs()`) de cada transação, subtrair do limite mensal total e subtrair gastos fixos
+   **And** ao somar os gastos, deve utilizar a **fatura de vencimento (`invoice_date`)** correspondente ao mês-alvo (fechamento dia 10), ignorando a data em que a compra ocorreu.
    **And** dividir o restante pelos dias que faltam no mês para determinar a meta de gasto diária.
 
 ## Tasks / Subtasks

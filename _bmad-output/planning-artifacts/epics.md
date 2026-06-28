@@ -131,8 +131,12 @@ So that possamos ter na base os gastos manuais, parcelados e despesas fixas ofic
 
 **Given** o `TOKEN_ORGANIZZE` configurado em variável de ambiente
 **When** a rotina de sincronização é disparada
-**Then** o sistema faz uma requisição HTTP segura à API v2 do Organizze
-**And** converte o payload retornado para uma estrutura compatível pronta para análise.
+**Then** o sistema faz requisições HTTP seguras à API v2 do Organizze buscando as **Faturas (Invoices)** dos cartões rastreados
+**And** extrai 100% das transações contidas nelas independentemente da data de compra (para não perder parcelas/movimentações).
+
+**Given** a existência de várias contas ou cartões no Organizze
+**When** a sincronização for disparada
+**Then** o sistema deve filtrar e processar **SOMENTE** transações dos cartões autorizados (ex: Itaú Azul e Santander AA).
 
 **Given** uma transação que contenha a palavra 'ignorar' no campo 'notes' ou 'deb._autom._de_fatura' na descrição
 **When** a transação for processada na sincronização
@@ -140,7 +144,7 @@ So that possamos ter na base os gastos manuais, parcelados e despesas fixas ofic
 
 **Given** uma transação que seja uma compra parcelada
 **When** for sincronizada
-**Then** o sistema deve registrar a parcela atual e o total de parcelas (`installment` e `total_installments`).
+**Then** o sistema deve registrar a parcela atual, total de parcelas e a `invoice_date` correta para ser cobrada no mês alvo.
 
 **Given** falha de rede ou rate-limit na API do Organizze
 **When** a rotina tentar rodar
@@ -190,8 +194,8 @@ So that o sistema saiba matematicamente a velocidade dos gastos e se o limite do
 
 **Given** a soma de transações na base de dados
 **When** a rotina realizar o cálculo
-**Then** deve determinar o total gasto, subtrair do limite mensal e subtrair os gastos fixos projetados para calcular o que sobra
-**And** ao somar os gastos, deve respeitar a **data de fechamento da fatura** dos cartões (ex: dia 10), considerando apenas as transações (e parcelas) que caem na fatura do mês atual.
+**Then** deve determinar o total gasto convertido para **Valores Absolutos**, subtrair do limite mensal e subtrair gastos fixos
+**And** a soma deve agrupar as transações com base na sua **fatura de vencimento (`invoice_date`)**, cujo fechamento do ciclo de orçamentos se baseia no dia 10 de cada mês.
 **And** dividir o restante pelos dias que faltam no mês para determinar a meta de gasto diária.
 
 ### Story 3.3: Gráfico Textual e Disparo via Telegram

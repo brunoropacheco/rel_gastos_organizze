@@ -18,8 +18,8 @@ so that possamos ter na base os gastos manuais, parcelados e despesas fixas ofic
 
 1. **Given** o `TOKEN_ORGANIZZE` configurado em variável de ambiente
    **When** a rotina de sincronização é disparada
-   **Then** o sistema faz uma requisição HTTP segura à API v2 do Organizze
-   **And** converte o payload retornado para uma estrutura compatível pronta para análise.
+   **Then** o sistema faz requisições HTTP seguras à API v2 do Organizze buscando as faturas (invoices) dos cartões autorizados (ex: Itaú Azul, Santander AA)
+   **And** extrai todas as transações de cada fatura, injetando a data de vencimento da fatura (`invoice_date`) para correta alocação orçamentária.
 
 2. **Given** falha de rede ou rate-limit na API do Organizze
    **When** a rotina tentar rodar
@@ -29,9 +29,9 @@ so that possamos ter na base os gastos manuais, parcelados e despesas fixas ofic
    **When** a transação for processada na sincronização
    **Then** ela deve ser sumariamente descartada ou marcada para não entrar nos cálculos.
 
-4. **Given** uma transação que seja uma compra parcelada
-   **When** for sincronizada
-   **Then** o sistema deve registrar a parcela atual e o total de parcelas (`installment` e `total_installments`).
+4. **Given** uma transação que seja uma compra parcelada ou movida manualmente
+   **When** for sincronizada a partir da fatura
+   **Then** o sistema deve registrar a parcela atual e o total de parcelas (`installment` e `total_installments`), bem como a `invoice_date`.
 
 ## Tasks / Subtasks
 

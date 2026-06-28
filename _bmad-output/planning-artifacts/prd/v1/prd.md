@@ -62,3 +62,11 @@ Este documento detalha os requisitos para o sistema de inteligência financeira 
 *   **Fase 1:** Setup do Postgres e sincronização básica com Organizze.
 *   **Fase 2:** Implementação do Webhook e Integração Apple Wallet.
 *   **Fase 3:** Lógica de inteligência (Burn-rate) e Notificações Telegram.
+
+## 8. Regras de Negócio e Extração de Dados (Descobertas em Implementação)
+*   **Filtro Exclusivo de Cartões:** O sistema deve sincronizar SOMENTE lançamentos vindos das faturas dos cartões de crédito monitorados (ex: Itaú Azul e Santander AA). Operações de débito e conta corrente devem ser ignoradas no cálculo do Burn-Rate.
+*   **Estratégia Orientada a Faturas (Invoices):** As parcelas de cartão e transações movidas manualmente dentro do Organizze preservam sua "data de compra" original. Para garantir o enquadramento perfeito, o sistema DEVE extrair as despesas diretamente das **Faturas de Cartão de Crédito**, usando a `invoice_date` (data de vencimento da fatura) como base para os cálculos, não a data de compra.
+*   **Ciclo do Dia 10:** O ciclo financeiro fecha e inicia no dia 10. Consultas de orçamento se baseiam no mês de faturamento que esse dia 10 representa.
+*   **Valores Absolutos:** A API retorna despesas como valores negativos, mas toda a inteligência e projeção lida com valores absolutos.
+*   **Filtros de Exclusão:** Transações com `ignorar` no campo *notes* e descrições automáticas de débito de fatura (`deb._autom._de_fatura`) devem ser removidas da soma de orçamentos.
+*   **Limites de Categoria:** Existe um fallback interno (lista de limites em BRL para categorias como Alimentação, Casa, Viagem, etc.) caso o sistema principal de limites falhe ou não esteja disponível.
