@@ -58,12 +58,29 @@ def format_telegram_message(stats: Dict[str, int]) -> str:
         f"✅ Na última parcela: {stats.get('qtde_ultima_parcela', 0)}\n"
     )
     
+    categories_data = stats.get('categories_data', {})
+    if categories_data:
+        msg += "\n📋 *Por Categoria:*"
+        for cat_name, c_data in categories_data.items():
+            c_limit = c_data["limit_cents"]
+            c_spent = c_data["spent_cents"]
+            c_rem = c_data["remaining_cents"]
+            
+            c_pct = 0.0
+            if c_limit > 0:
+                c_pct = min(1.0, max(0.0, abs(c_spent) / c_limit))
+            c_filled = int(5 * c_pct)
+            c_bar = "█" * c_filled + "░" * (5 - c_filled)
+            
+            cat_name_fmt = str(cat_name).capitalize().replace("_", " ")
+            msg += f"\n[{c_bar}] {cat_name_fmt}: {cents_to_brl(c_rem)} livre"
+    
     if rem < 0:
-        msg += "\n🚨 *ALERTA:* Você ultrapassou o orçamento!"
+        msg += "\n\n🚨 *ALERTA:* Você ultrapassou o orçamento!"
     elif target < 0:
-        msg += "\n⚠️ *CUIDADO:* Meta diária negativa."
+        msg += "\n\n⚠️ *CUIDADO:* Meta diária negativa."
     else:
-        msg += "\n🔥 Mantenha o foco!"
+        msg += "\n\n🔥 Mantenha o foco!"
         
     return msg
 

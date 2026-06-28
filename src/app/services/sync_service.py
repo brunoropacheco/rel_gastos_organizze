@@ -1,6 +1,6 @@
 import logging
 from sqlmodel import Session, select
-from src.app.services.organizze import sync_transactions, SyncError
+from src.app.services.organizze import sync_transactions, sync_categories, SyncError
 from src.app.core.utils import generate_hash_signature
 from src.app.models.transaction import Transaction
 
@@ -12,6 +12,7 @@ async def run_sync_and_reconcile(session: Session):
     """
     try:
         organizze_txs = await sync_transactions()
+        category_map = await sync_categories()
     except SyncError as e:
         logger.error(f"Failed to sync transactions from Organizze: {e}")
         return
@@ -38,6 +39,8 @@ async def run_sync_and_reconcile(session: Session):
             # A instrução diz "priorizar a descrição do webhook". Como já está no banco, não sobrescrevemos.
         else:
             # Não existe, criar novo
+            cat_name = category_map.get(org_tx.category_id, "outros") if org_tx.category_id else "outros"
+            
             new_tx = Transaction(
                 description=org_tx.description,
                 amount_cents=org_tx.amount_cents,
@@ -45,7 +48,8 @@ async def run_sync_and_reconcile(session: Session):
                 source="organizze",
                 hash_signature=signature,
                 installment=org_tx.installment,
-                total_installments=org_tx.total_installments
+                total_installments=org_tx.total_installments,
+                category_name=cat_name
             )
             session.add(new_tx)
             

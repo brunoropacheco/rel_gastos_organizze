@@ -12,11 +12,23 @@ logger = logging.getLogger(__name__)
 
 # Fallback limits as a dictionary. Keys are category names, values are limits in cents.
 FALLBACK_LIMITS: Dict[str, int] = {
-    "alimentacao": 200000, # 2000.00
-    "transporte": 50000,   # 500.00
-    "lazer": 30000,        # 300.00
-    "moradia": 300000,     # 3000.00
-    "saude": 20000,        # 200.00
+    "alimentacao_casa": 100000,
+    "anuidade": 23600,
+    "assinaturas": 44600,
+    "beleza": 43000,
+    "casa": 80000,
+    "compras": 92000,
+    "diversao-lazer": 57500,
+    "diversao-comida": 75000,
+    "delivery": 90000,
+    "educacao": 260000,
+    "marketing": 79900,
+    "esporte": 0,
+    "outros": 10000,
+    "saude": 80500,
+    "seguro_carro": 40300,
+    "transp(ub+gas+vel+ccr)": 193000,
+    "viagem": 250000
 }
 
 async def get_monthly_limits(session: AsyncSession) -> Dict[str, int]:
@@ -89,9 +101,15 @@ async def get_current_month_spent(session: AsyncSession, reference_date: datetim
         
         total = sum(tx.amount_cents for tx in transactions)
         
+        spent_by_category = {}
         qtde_parcelado = 0
         qtde_ultima_parcela = 0
         for tx in transactions:
+            cat = tx.category_name or "outros"
+            # Normalize to avoid case mismatch if needed (fallback keys are lowercase)
+            cat = cat.lower()
+            spent_by_category[cat] = spent_by_category.get(cat, 0) + tx.amount_cents
+            
             if tx.total_installments and tx.total_installments > 1:
                 qtde_parcelado += 1
                 if tx.installment == tx.total_installments:
@@ -99,13 +117,14 @@ async def get_current_month_spent(session: AsyncSession, reference_date: datetim
                     
         return {
             "total": total,
+            "spent_by_category": spent_by_category,
             "qtde_parcelado": qtde_parcelado,
             "qtde_ultima_parcela": qtde_ultima_parcela,
             "end_date": end_date
         }
     except SQLAlchemyError as e:
         logger.exception("Erro de banco de dados ao buscar gastos do mês.")
-        return {"total": 0, "qtde_parcelado": 0, "qtde_ultima_parcela": 0, "end_date": reference_date}
+        return {"total": 0, "spent_by_category": {}, "qtde_parcelado": 0, "qtde_ultima_parcela": 0, "end_date": reference_date}
 
 async def calculate_burn_rate_velocity(
     session: AsyncSession, 
@@ -137,6 +156,23 @@ async def calculate_burn_rate_velocity(
     else:
         daily_target = remaining_budget // days_remaining
         
+    monthly_limits = await get_monthly_limits(session)
+    spent_by_category = spent_data.get("spent_by_category", {})
+    categories_data = {}
+    
+    for cat, limit_cents in monthly_limits.items():
+        if limit_cents == 0 and spent_by_category.get(cat, 0) == 0:
+            continue # ignora categorias vazias que nao gastaram nada
+            
+        c_spent = spent_by_category.get(cat, 0)
+        c_rem = limit_cents - c_spent
+        categories_data[cat] = {
+            "limit_cents": limit_cents,
+            "spent_cents": c_spent,
+            "remaining_cents": c_rem,
+            "daily_target": c_rem // days_remaining if days_remaining > 0 else c_rem
+        }
+        
     return {
         "total_budget_cents": total_budget_cents,
         "total_spent_cents": total_spent_cents,
@@ -145,5 +181,6 @@ async def calculate_burn_rate_velocity(
         "days_remaining": days_remaining,
         "daily_target_cents": daily_target,
         "qtde_parcelado": spent_data["qtde_parcelado"],
-        "qtde_ultima_parcela": spent_data["qtde_ultima_parcela"]
+        "qtde_ultima_parcela": spent_data["qtde_ultima_parcela"],
+        "categories_data": categories_data
     }

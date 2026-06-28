@@ -16,6 +16,7 @@ class Transaction(SQLModel, table=True):
     hash_signature: str = Field(unique=True, index=True, max_length=255)
     installment: Optional[int] = Field(default=None)
     total_installments: Optional[int] = Field(default=None)
+    category_name: Optional[str] = Field(default=None, max_length=100)
     source: str = Field(default="webhook", max_length=50)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     

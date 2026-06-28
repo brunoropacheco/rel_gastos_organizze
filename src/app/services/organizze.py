@@ -8,6 +8,7 @@ from src.app.schemas.organizze import OrganizzeTransaction
 logger = logging.getLogger(__name__)
 
 ORGANIZZE_API_URL = "https://api.organizze.com.br/rest/v2/transactions"
+ORGANIZZE_API_CATEGORIES_URL = "https://api.organizze.com.br/rest/v2/categories"
 
 class SyncError(Exception):
     pass
@@ -53,4 +54,28 @@ async def sync_transactions() -> List[OrganizzeTransaction]:
         raise SyncError(f"Network error: {str(e)}") from e
     except Exception as e:
         logger.exception("Unexpected error during Organizze sync")
+        raise SyncError("Unexpected error") from e
+
+async def sync_categories() -> dict:
+    """
+    Busca categorias da API v2 do Organizze e retorna mapeamento {id: name}.
+    """
+    headers = {
+        "Authorization": f"Basic {settings.token_organizze}",
+        "User-Agent": "rel_gastos_organizze/0.1"
+    }
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(ORGANIZZE_API_CATEGORIES_URL, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return {item["id"]: item["name"] for item in data}
+    except httpx.HTTPStatusError as e:
+        logger.error(f"HTTP error from Organizze API Categories: {e.response.status_code}")
+        raise SyncError(f"HTTP error: {e.response.status_code}") from e
+    except httpx.RequestError as e:
+        logger.error(f"Network error while connecting to Organizze API Categories: {str(e)}")
+        raise SyncError(f"Network error: {str(e)}") from e
+    except Exception as e:
+        logger.exception("Unexpected error during Organizze categories sync")
         raise SyncError("Unexpected error") from e
