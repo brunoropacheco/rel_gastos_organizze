@@ -13,10 +13,12 @@ from src.app.services.notify_service import format_telegram_message, send_telegr
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+import sys
+
 def run_migrations():
     logger.info("Executando migrações do banco de dados (Alembic)...")
     try:
-        subprocess.run(["alembic", "upgrade", "head"], check=True)
+        subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], check=True)
         logger.info("Migrações concluídas com sucesso.")
     except subprocess.CalledProcessError as e:
         logger.error(f"Erro ao executar migrações: {e}")
