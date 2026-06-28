@@ -23,10 +23,10 @@ RUN chmod +x /app/entrypoint.sh
 # Configurar o crontab
 # 0 10 = 7:00 BRT
 # 0 0 = 21:00 BRT
-# 15 13 = 10:15 BRT (Run teste imediato/agendado pelo usuario)
+# 22 13 = 10:22 BRT (Run teste imediato/agendado pelo usuario)
 RUN echo "0 10 * * * root cd /app && /usr/local/bin/python -m src.scripts.run_cron >> /var/log/cron.log 2>&1" > /etc/cron.d/organizze-cron \
     && echo "0 0 * * * root cd /app && /usr/local/bin/python -m src.scripts.run_cron >> /var/log/cron.log 2>&1" >> /etc/cron.d/organizze-cron \
-    && echo "18 13 * * * root cd /app && /usr/local/bin/python -m src.scripts.run_cron >> /var/log/cron.log 2>&1" >> /etc/cron.d/organizze-cron \
+    && echo "22 13 * * * root cd /app && /usr/local/bin/python -m src.scripts.run_cron >> /var/log/cron.log 2>&1" >> /etc/cron.d/organizze-cron \
     && echo "" >> /etc/cron.d/organizze-cron \
     && chmod 0644 /etc/cron.d/organizze-cron
 
