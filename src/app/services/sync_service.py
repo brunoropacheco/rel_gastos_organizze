@@ -18,7 +18,11 @@ async def run_sync_and_reconcile(session: Session):
         return
     
     for org_tx in organizze_txs:
-        # Pular ignorados
+        # Pular ignorados e que não são dos dois cartões de crédito rastreados
+        valid_cards = [1840776, 2423452] # IDs do Cartao_Santander_AA e Cartao_Itau_Azul
+        if org_tx.credit_card_id not in valid_cards:
+            continue
+            
         if org_tx.notes and "ignorar" in org_tx.notes.lower():
             continue
         if "deb._autom._de_fatura" in org_tx.description.lower():
@@ -49,6 +53,7 @@ async def run_sync_and_reconcile(session: Session):
                 hash_signature=signature,
                 installment=org_tx.installment,
                 total_installments=org_tx.total_installments,
+                credit_card_id=org_tx.credit_card_id,
                 category_name=cat_name
             )
             session.add(new_tx)

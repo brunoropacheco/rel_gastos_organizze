@@ -1,6 +1,7 @@
 import httpx
 import logging
 import base64
+from datetime import datetime, timedelta
 from typing import List
 from src.app.core.config import settings
 from src.app.schemas.organizze import OrganizzeTransaction
@@ -24,8 +25,12 @@ async def sync_transactions() -> List[OrganizzeTransaction]:
         "User-Agent": "rel_gastos_organizze/0.1"
     }
 
+    hoje = datetime.now()
+    start_date = (hoje - timedelta(days=90)).strftime('%Y-%m-%d')
+    end_date = (hoje + timedelta(days=60)).strftime('%Y-%m-%d')
+
     transactions = []
-    url = ORGANIZZE_API_URL
+    url = f"{ORGANIZZE_API_URL}?start_date={start_date}&end_date={end_date}"
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
