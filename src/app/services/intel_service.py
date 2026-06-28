@@ -12,23 +12,23 @@ logger = logging.getLogger(__name__)
 
 # Fallback limits as a dictionary. Keys are category names, values are limits in cents.
 FALLBACK_LIMITS: Dict[str, int] = {
-    "alimentacao_casa": 100000,
+    "alimentacao_casa": 120000,
     "anuidade": 23600,
     "assinaturas": 44600,
-    "beleza": 43000,
-    "casa": 80000,
-    "compras": 92000,
-    "diversao-lazer": 57500,
-    "diversao-comida": 75000,
-    "delivery": 90000,
-    "educacao": 260000,
-    "marketing": 79900,
+    "beleza": 20000,
+    "casa": 250000,
+    "compras": 108700,
+    "delivery": 75000,
+    "diversao-comida": 130000,
+    "diversao-lazer": 100000,
+    "educacao": 261500,
     "esporte": 0,
-    "outros": 10000,
-    "saude": 80500,
-    "seguro_carro": 40300,
-    "transp(ub+gas+vel+ccr)": 193000,
-    "viagem": 250000
+    "marketing": 79900,
+    "outros": 5000,
+    "saude": 70000,
+    "seguro_carro": 40700,
+    "transp(ub+gas+vel+ccr)": 190000,
+    "viagem": 260000
 }
 
 async def get_monthly_limits(session: AsyncSession) -> Dict[str, int]:
