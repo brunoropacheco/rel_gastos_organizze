@@ -57,7 +57,7 @@ development_status:
   epic-3-retrospective: optional
   epic-4: in-progress
   4-1-deploy-do-banco-de-dados-postgresql-no-railway: done
-  4-2-deploy-da-api-fastapi-no-railway-via-docker: backlog
+  4-2-deploy-da-api-fastapi-no-railway-via-docker: done
   4-3-configuracao-do-atalho-no-ios-apple-wallet: backlog
   4-4-agendamento-das-rotinas-cron: backlog
   epic-4-retrospective: backlog
