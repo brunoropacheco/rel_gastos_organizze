@@ -12,7 +12,7 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
+COPY pyproject.toml README.md ./
 RUN uv pip install --system --no-cache .
 
 COPY . .
