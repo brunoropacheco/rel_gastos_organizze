@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import subprocess
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Session
@@ -12,8 +13,17 @@ from src.app.services.notify_service import format_telegram_message, send_telegr
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def run_migrations():
+    logger.info("Executando migrações do banco de dados (Alembic)...")
+    try:
+        subprocess.run(["alembic", "upgrade", "head"], check=True)
+        logger.info("Migrações concluídas com sucesso.")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"Erro ao executar migrações: {e}")
+
 async def run_jobs():
     logger.info("Iniciando rotina CRON de 7h/21h...")
+    run_migrations()
     
     # 1. Run sync (Synchronous session for db, but awaits sync_transactions)
     logger.info("Executando sincronizacao do Organizze...")
