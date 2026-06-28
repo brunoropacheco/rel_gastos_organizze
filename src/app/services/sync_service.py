@@ -54,6 +54,7 @@ async def run_sync_and_reconcile(session: Session):
                 installment=org_tx.installment,
                 total_installments=org_tx.total_installments,
                 credit_card_id=org_tx.credit_card_id,
+                invoice_date=org_tx.invoice_date,
                 category_name=cat_name
             )
             session.add(new_tx)

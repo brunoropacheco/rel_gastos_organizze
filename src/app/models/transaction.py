@@ -17,6 +17,7 @@ class Transaction(SQLModel, table=True):
     installment: Optional[int] = Field(default=None)
     total_installments: Optional[int] = Field(default=None)
     credit_card_id: Optional[int] = Field(default=None)
+    invoice_date: Optional[datetime] = Field(default=None)
     category_name: Optional[str] = Field(default=None, max_length=100)
     source: str = Field(default="webhook", max_length=50)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -30,20 +30,31 @@ async def sync_transactions() -> List[OrganizzeTransaction]:
     end_date = (hoje + timedelta(days=60)).strftime('%Y-%m-%d')
 
     transactions = []
-    url = f"{ORGANIZZE_API_URL}?start_date={start_date}&end_date={end_date}"
+    valid_cards = [1840776, 2423452] # IDs do Cartao_Santander_AA e Cartao_Itau_Azul
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            while url:
-                response = await client.get(url, headers=headers)
-                response.raise_for_status()
+            for card_id in valid_cards:
+                # 1. Fetch invoices for this card
+                inv_url = f"https://api.organizze.com.br/rest/v2/credit_cards/{card_id}/invoices?start_date={start_date}&end_date={end_date}"
+                res_inv = await client.get(inv_url, headers=headers)
+                res_inv.raise_for_status()
+                invoices = res_inv.json()
                 
-                data = response.json()
-                transactions.extend([OrganizzeTransaction(**item) for item in data])
-                
-                # Check for pagination (e.g. link header or custom body)
-                # Usually APIs use Links header for pagination: response.links.get("next", {}).get("url")
-                url = response.links.get("next", {}).get("url")
+                for inv in invoices:
+                    inv_date_str = inv['date']
+                    # 2. Fetch transactions for each invoice
+                    tx_url = f"https://api.organizze.com.br/rest/v2/credit_cards/{card_id}/invoices/{inv['id']}"
+                    res_tx = await client.get(tx_url, headers=headers)
+                    res_tx.raise_for_status()
+                    inv_data = res_tx.json()
+                    
+                    for item in inv_data.get('transactions', []):
+                        item['invoice_date'] = inv_date_str
+                        # Se credit_card_id não estiver presente no item, injetar para não quebrar a tipagem
+                        if 'credit_card_id' not in item:
+                            item['credit_card_id'] = card_id
+                        transactions.append(OrganizzeTransaction(**item))
                 
             return transactions
 

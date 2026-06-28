@@ -78,23 +78,24 @@ async def get_current_month_spent(session: AsyncSession, reference_date: datetim
         end_date = datetime.datetime(reference_date.year, reference_date.month, dia_limite, 23, 59, 59, 999999, tzinfo=datetime.timezone.utc)
         start_month = reference_date.month - 1
         start_year = reference_date.year
-        if start_month < 1:
-            start_month = 12
-            start_year -= 1
-        start_date = datetime.datetime(start_year, start_month, dia_limite + 1, tzinfo=datetime.timezone.utc)
+    # Determinar a janela de fatura baseada no fechamento (dia 10)
+    # Transações da fatura atual são aquelas cujo invoice_date vence no mês de referência.
+    if reference_date.day <= 10:
+        target_month = reference_date.month
+        target_year = reference_date.year
     else:
-        start_date = datetime.datetime(reference_date.year, reference_date.month, dia_limite + 1, tzinfo=datetime.timezone.utc)
-        end_month = reference_date.month + 1
-        end_year = reference_date.year
-        if end_month > 12:
-            end_month = 1
-            end_year += 1
-        end_date = datetime.datetime(end_year, end_month, dia_limite, 23, 59, 59, 999999, tzinfo=datetime.timezone.utc)
-    
+        target_month = reference_date.month + 1
+        target_year = reference_date.year
+        if target_month > 12:
+            target_month = 1
+            target_year += 1
+            
     try:
+        # Import sqlite date extraction helper
+        from sqlalchemy import extract
         statement = select(Transaction).where(
-            Transaction.date >= start_date,
-            Transaction.date <= end_date
+            extract('year', Transaction.invoice_date) == target_year,
+            extract('month', Transaction.invoice_date) == target_month
         )
         result = await session.exec(statement)
         transactions = result.all()
@@ -124,7 +125,7 @@ async def get_current_month_spent(session: AsyncSession, reference_date: datetim
             "spent_by_category": spent_by_category,
             "qtde_parcelado": qtde_parcelado,
             "qtde_ultima_parcela": qtde_ultima_parcela,
-            "end_date": end_date
+            "end_date": datetime.datetime(target_year, target_month, 10).date()
         }
     except SQLAlchemyError as e:
         logger.exception("Erro de banco de dados ao buscar gastos do mês.")

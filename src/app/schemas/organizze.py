@@ -14,3 +14,4 @@ class OrganizzeTransaction(BaseModel):
     account_id: Optional[int] = None
     installment: Optional[int] = None
     total_installments: Optional[int] = None
+    invoice_date: Optional[datetime] = None
