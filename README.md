@@ -106,3 +106,4 @@ Para mais informações, entre em contato com brunoropacheco@gmail.com.
 ---
 
 **Nota:** Este README foi ajustado para refletir o funcionamento do código atual. Atualize conforme necessário para atender suas necessidades específicas.
+dando um commit para voltar o actions
