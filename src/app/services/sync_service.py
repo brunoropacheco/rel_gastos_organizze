@@ -18,9 +18,9 @@ async def run_sync_and_reconcile(session: Session):
         return
     
     for org_tx in organizze_txs:
-        # Pular cartões ignorados, mas permitir transações sem cartão (conta corrente/PIX)
+        # Pular ignorados e que não são dos dois cartões de crédito rastreados
         valid_cards = [1840776, 2423452] # IDs do Cartao_Santander_AA e Cartao_Itau_Azul
-        if org_tx.credit_card_id is not None and org_tx.credit_card_id not in valid_cards:
+        if org_tx.credit_card_id not in valid_cards:
             continue
             
         if org_tx.notes and "ignorar" in org_tx.notes.lower():
