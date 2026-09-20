@@ -28,8 +28,9 @@ def normalize_date(date_obj: datetime) -> str:
     return date_obj.isoformat()
 
 def generate_hash_signature(amount_cents: int, date_obj: datetime, description: str) -> str:
-    """Gera o hash_signature com base em valor, data normalizada e descrição normalizada."""
+    """Gera o hash_signature com base em valor absoluto, data normalizada e descrição normalizada."""
     norm_desc = normalize_string(description)
     date_str = normalize_date(date_obj)
-    raw = f"{amount_cents}|{date_str}|{norm_desc}"
+    # Usar abs() para garantir que webhook (positivo) e Organizze (negativo) batam
+    raw = f"{abs(amount_cents)}|{date_str}|{norm_desc}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()

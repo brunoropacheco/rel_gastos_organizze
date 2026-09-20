@@ -56,6 +56,19 @@ async def sync_transactions() -> List[OrganizzeTransaction]:
                             item['credit_card_id'] = card_id
                         transactions.append(OrganizzeTransaction(**item))
                 
+            # 3. Fetch normal transactions (Checking account, PIX, etc)
+            tx_url = f"{ORGANIZZE_API_URL}?start_date={start_date}&end_date={end_date}"
+            res_normal_tx = await client.get(tx_url, headers=headers)
+            res_normal_tx.raise_for_status()
+            normal_transactions = res_normal_tx.json()
+            
+            for item in normal_transactions:
+                # Transações normais (sem cartão) não têm invoice_date natural,
+                # então usamos a própria data do gasto para que caia no mês certo.
+                if 'invoice_date' not in item or not item['invoice_date']:
+                    item['invoice_date'] = item['date']
+                transactions.append(OrganizzeTransaction(**item))
+                
             return transactions
 
     except httpx.HTTPStatusError as e:
