@@ -53,16 +53,17 @@ async def run_sync_and_reconcile(session: Session):
             if "organizze" not in existing_tx.source:
                 existing_tx.source = existing_tx.source + "+organizze"
                 
-                # Preencher dados ricos que vêm do Organizze e o webhook não tinha
-                existing_tx.invoice_date = org_tx.invoice_date
-                existing_tx.installment = org_tx.installment
-                existing_tx.total_installments = org_tx.total_installments
-                existing_tx.credit_card_id = org_tx.credit_card_id
-                
-                cat_name = category_map.get(org_tx.category_id, "outros") if org_tx.category_id else "outros"
-                existing_tx.category_name = cat_name
-                
-                session.add(existing_tx)
+            # Sempre preencher ou atualizar os dados ricos do Organizze
+            # Isso corrige transações antigas que foram reconciliadas antes do fix e ficaram com invoice_date=None
+            existing_tx.invoice_date = org_tx.invoice_date
+            existing_tx.installment = org_tx.installment
+            existing_tx.total_installments = org_tx.total_installments
+            existing_tx.credit_card_id = org_tx.credit_card_id
+            
+            cat_name = category_map.get(org_tx.category_id, "outros") if org_tx.category_id else "outros"
+            existing_tx.category_name = cat_name
+            
+            session.add(existing_tx)
             # Garantir que a descrição do webhook (se existir) seja mantida. 
             # A instrução diz "priorizar a descrição do webhook". Como já está no banco, não sobrescrevemos.
         else:
