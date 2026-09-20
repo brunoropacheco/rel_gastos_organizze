@@ -59,7 +59,7 @@ A API utiliza as seguintes regras de sincronização com o Organizze:
 1. **Filtro de Cartões:** Apenas despesas de cartões de crédito monitorados são processadas (ex. Santander AA, Itaú Azul).
 2. **Ciclo de Fatura:** Para garantir que transações movidas manualmente entre faturas sejam corretamente alocadas, o sistema busca os lançamentos pelo endpoint de **faturas** (`/invoices`), extraindo as transações agrupadas pela data de vencimento (`invoice_date`), não pela data exata da compra.
 3. **Burn Rate:** O sistema agrupa os gastos por categoria convertendo valores para absoluto, em seguida os compara aos limites estabelecidos. Caso a planilha do Google Sheets não esteja disponível/configurada, é usado um dicionário de fallback embutido no código com limites definidos.
-4. **Tratamento de Parcelas Futuras:** A API do Organizze não move automaticamente parcelas de compras parceladas caso a fatura vire antes. Isso deve ser feito manualmente no app Organizze; após essa ação, a API sincronizará corretamente com base na leitura da fatura.
+5. **Deduplicação Inteligente (Webhook vs Organizze):** Transações originadas pelo Apple Wallet via Webhook são registradas com valor positivo e sem `invoice_date`. A conciliação automática converte os valores para módulo (`abs()`) ao gerar a assinatura de hash, permitindo o batimento de transações positivas (Webhook) com transações negativas (Despesas do Organizze). Ao ser conciliada, a transação "herda" retroativamente os campos essenciais da API (`invoice_date`, `category_name`, etc.) para que fique visível nos cálculos do Burn Rate, garantindo consistência no banco sem perder a descrição original do usuário.
 
 ## Contato
 

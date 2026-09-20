@@ -97,3 +97,8 @@ Google DeepMind Antigravity
 - [x] [Review][Defer] N+1 Query Problem in Sync Loop [src/app/services/sync_service.py] — deferred, pre-existing
 - [x] [Review][Defer] All-or-Nothing Batch Commits [src/app/services/sync_service.py] — deferred, pre-existing
 - [x] [Review][Defer] Concurrent webhook insertion (TOCTOU) [src/app/services/sync_service.py] — deferred, pre-existing
+
+### Post-Implementation Bugfixes (Sep 2026)
+- ✅ [Bugfix] Fixed deduplication failure caused by Webhook generating hashes for positive amounts (`5000`) and Organizze generating hashes for negative amounts (`-5000`). Modified `generate_hash_signature` to use `abs(amount_cents)`.
+- ✅ [Bugfix] Added backward compatibility fallback hash in `sync_service.py` to seamlessly migrate old records to the new absolute-value hash signature without duplicating the last 90 days of transactions.
+- ✅ [Bugfix] Fixed missing `invoice_date` and categories on old reconciled Webhook transactions. Moved the rich data update logic outside the `"organizze" not in source` block, ensuring legacy ghost transactions are retroactively hydrated to appear correctly in the `get_current_month_spent` scope.
