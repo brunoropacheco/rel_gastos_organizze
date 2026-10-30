@@ -150,3 +150,5 @@ curl -X POST http://127.0.0.1:8000/api/webhooks/transactions \
 ## Contato
 
 Dúvidas: brunoropacheco@gmail.com
+**Nota:** Este README foi ajustado para refletir o funcionamento do código atual. Atualize conforme necessário para atender suas necessidades específicas.
+dando um commit para voltar o actions
