@@ -1,66 +1,152 @@
-# API Relatório de Gastos de Cartão de Crédito (Organizze)
+# Relatório de Gastos de Cartão de Crédito (Organizze)
 
-Este projeto é uma API em FastAPI projetada para automatizar a análise de transações financeiras dos cartões de crédito (Santander AA e Itaú Azul) associados ao aplicativo Organizze. 
-Ele busca faturas e transações via API, armazena em um banco local (SQLite via SQLAlchemy/Alembic) e calcula os gastos totais comparando-os com limites pré-definidos (burn rate) por categoria.
+API em **FastAPI** que automatiza o acompanhamento dos gastos de cartão de crédito (Santander AA e Itaú Azul) do app [Organizze](https://organizze.com.br).
+
+Ela:
+
+1. Recebe transações em tempo real via **webhook** (ex.: Apple Wallet / Atalhos da Apple).
+2. Sincroniza faturas e transações do Organizze via API e **deduplica** com as do webhook.
+3. Calcula o **burn rate** (gasto vs. limite por categoria e meta diária).
+4. Envia um resumo por mensagem (via [CallMeBot](https://www.callmebot.com/)) em horários agendados (cron).
+
+## Arquitetura
+
+```mermaid
+flowchart LR
+    A[Apple Wallet / Atalhos] -->|POST + X-API-Key| B[FastAPI]
+    C[Cron no container] --> D[run_cron.py]
+    D -->|API| E[Organizze]
+    D --> F[(PostgreSQL)]
+    B --> F
+    D -->|resumo| G[CallMeBot]
+```
 
 ## Estrutura do Projeto
 
-- **`src/app/`**: Diretório principal contendo a aplicação FastAPI (modelos, schemas, serviços, banco de dados e rotas da API).
-- **`alembic/` & `alembic.ini`**: Configurações de migração de banco de dados.
-- **`requirements.txt`**: Lista de dependências do projeto.
-- **`legacy/`**: Diretório contendo os scripts analíticos originais.
-- **`tests/`**: Testes da aplicação.
+| Caminho | Descrição |
+|---|---|
+| `src/app/main.py` | Aplicação FastAPI (`/health` e rotas de webhook) |
+| `src/app/api/` | Rotas (`POST /api/webhooks/transactions`) |
+| `src/app/core/` | Configuração (`config.py`), segurança e utilitários (hash de deduplicação) |
+| `src/app/db/`, `models/`, `schemas/` | Sessão do banco, modelos SQLModel e schemas Pydantic |
+| `src/app/services/` | Sync com Organizze, reconciliação, cálculo de burn rate e notificações |
+| `src/scripts/run_cron.py` | Rotina agendada: migrações → sync → burn rate → notificação |
+| `alembic/`, `alembic.ini` | Migrações do banco |
+| `Dockerfile`, `entrypoint.sh` | Imagem usada no deploy (API + cron no mesmo container) |
+| `migration/`, `legacy/` | SQL de classificação e scripts analíticos originais |
+| `tests/` | Testes (pytest) |
 
-## Dependências Principais
+## Variáveis de Ambiente
 
-- `fastapi` & `uvicorn` (Servidor Web)
-- `sqlalchemy` & `alembic` (ORM e Migrações)
-- `pandas` & `numpy` (Processamento de dados)
-- `requests` (Integração com Organizze)
-- `google-api-python-client` (Integração opcional com Google Sheets)
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `DATABASE_URL` | Sim | URL do PostgreSQL. Prefixo `postgres://` é convertido automaticamente para `postgresql://`. |
+| `TOKEN_ORGANIZZE` | Sim | Token da API do Organizze (Configurações → Desenvolvedor/API). |
+| `WEBHOOK_API_KEY` | Sim | Chave inventada por você; exigida no header `X-API-Key` das chamadas ao webhook. |
+| `CALLMEBOT_USER` | Sim | Usuário/alias do CallMeBot usado para enviar a notificação. |
+| `PORT` | Não | Porta HTTP (o Railway define sozinho; padrão `8000`). |
 
-Para instalar todas as dependências, execute:
+## Deploy no Railway (PostgreSQL incluso)
+
+Este é o setup usado em produção (branch `dev`). O Railway constrói a imagem a partir do `Dockerfile` automaticamente.
+
+1. No [Railway](https://railway.app), crie um **New Project → Deploy from GitHub repo** e selecione este repositório e a branch desejada (**Settings → Source → Branch**).
+2. No mesmo projeto, clique em **+ New → Database → Add PostgreSQL**.
+3. No serviço da API, abra **Variables** e configure:
+   - `DATABASE_URL` = `${{Postgres.DATABASE_URL}}` (referência ao serviço do banco; ajuste `Postgres` se o serviço tiver outro nome)
+   - `TOKEN_ORGANIZZE`, `WEBHOOK_API_KEY`, `CALLMEBOT_USER`
+4. Em **Settings → Networking**, clique em **Generate Domain** para expor a API publicamente.
+5. Faça o deploy. No start, o container executa:
+
+   ```sh
+   alembic upgrade head && uvicorn src.app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+   ```
+
+   Ou seja, **as migrações rodam automaticamente** a cada deploy.
+6. Valide: `curl https://<seu-dominio>.up.railway.app/health` → `{"status":"ok"}`.
+
+**Cron:** o `Dockerfile` instala o `cron` e agenda `python -m src.scripts.run_cron` (horários em UTC: `10:00` = 07:00 BRT, `00:00` = 21:00 BRT, e `13:22` = 10:22 BRT). O `entrypoint.sh` copia as variáveis de ambiente para `/etc/environment` para que o cron as enxergue, e os logs aparecem nos logs do serviço no Railway.
+
+> Dica: se o serviço do app e o Postgres estão no mesmo projeto, prefira a URL interna (`DATABASE_PRIVATE_URL`/`postgres.railway.internal`) para evitar tráfego público e custos de egress. Para rodar localmente contra o banco do Railway, use a URL pública (`DATABASE_PUBLIC_URL`).
+
+## Rodando Localmente
+
+Requisitos: Python ≥ 3.12 e um PostgreSQL acessível.
+
+### 1. Clonar e instalar
 
 ```sh
-pip install -r requirements.txt
+git clone <url-do-repositorio>
+cd rel_gastos_organizze
+python -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"        # ou: uv pip install -e ".[dev]"
 ```
 
-## Configuração
+### 2. Subir um PostgreSQL
 
-Antes de executar o servidor da API, configure o seu arquivo `.env` na raiz do projeto com as seguintes variáveis:
+Opção A — Docker:
 
-- `TOKEN_ORGANIZZE`: Token gerado nas configurações da sua conta do Organizze (engrenagem -> desenvolvedor/API). Usado para o script buscar faturas/metas.
-- `WEBHOOK_API_KEY`: Uma senha/token inventada por você. Esse token será exigido no header `X-API-Key` de todas as requisições que chegarem no seu Webhook (ex: vindas do Apple Shortcuts) para garantir segurança.
-- `DATABASE_URL`: URL de conexão com o banco de dados. Para testes rápidos locais, recomendamos usar SQLite: `sqlite:///./local.db`.
-- `PASSWORD_GMAIL`: (Opcional) Senha de aplicativo do Gmail para rotinas de disparo de e-mail.
+```sh
+docker run -d --name organizze-pg \
+  -e POSTGRES_USER=user -e POSTGRES_PASSWORD=pass -e POSTGRES_DB=organizze \
+  -p 5432:5432 postgres:16
+```
 
-### Configurando o Banco de Dados
+Opção B — usar o banco do Railway (copie a `DATABASE_PUBLIC_URL`). Cuidado: você estará apontando para dados reais.
 
-Com as variáveis de ambiente configuradas e as dependências instaladas, crie as tabelas do banco de dados executando as migrações:
+> O projeto usa Postgres (inclusive o job de cron usa `asyncpg`). SQLite não é suportado de forma confiável.
+
+### 3. Criar o `.env` na raiz
+
+```env
+DATABASE_URL=postgresql://user:pass@localhost:5432/organizze
+TOKEN_ORGANIZZE=seu_token_do_organizze
+WEBHOOK_API_KEY=uma_chave_secreta_qualquer
+CALLMEBOT_USER=seu_usuario_callmebot
+```
+
+### 4. Migrar e iniciar
 
 ```sh
 alembic upgrade head
-```
-
-## Execução
-
-Para iniciar o servidor FastAPI e poder receber requisições (como as de webhooks):
-
-```sh
 uvicorn src.app.main:app --reload
 ```
 
-A API ficará disponível em `http://127.0.0.1:8000`. Você pode acessar `http://127.0.0.1:8000/docs` para ver e testar a documentação interativa (Swagger UI).
+- API: http://127.0.0.1:8000
+- Swagger UI: http://127.0.0.1:8000/docs
+- Health check: http://127.0.0.1:8000/health
+
+### 5. Executar a rotina de sync/notificação manualmente
+
+```sh
+python -m src.scripts.run_cron
+```
+
+### 6. Testes
+
+```sh
+pytest
+```
+
+## Usando o Webhook
+
+```sh
+curl -X POST http://127.0.0.1:8000/api/webhooks/transactions \
+  -H "X-API-Key: $WEBHOOK_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Padaria", "amount_cents": 1590, "date": "2026-01-15T12:30:00"}'
+```
+
+- `amount_cents`: valor em centavos (positivo; `1590` = R$ 15,90).
+- Retorna `201` com a transação. Chamadas repetidas com os mesmos dados não duplicam o registro.
 
 ## Regras de Negócio e Sincronização
 
-A API utiliza as seguintes regras de sincronização com o Organizze:
-
-1. **Filtro de Cartões:** Apenas despesas de cartões de crédito monitorados são processadas (ex. Santander AA, Itaú Azul).
-2. **Ciclo de Fatura:** Para garantir que transações movidas manualmente entre faturas sejam corretamente alocadas, o sistema busca os lançamentos pelo endpoint de **faturas** (`/invoices`), extraindo as transações agrupadas pela data de vencimento (`invoice_date`), não pela data exata da compra.
-3. **Burn Rate:** O sistema agrupa os gastos por categoria convertendo valores para absoluto, em seguida os compara aos limites estabelecidos. Caso a planilha do Google Sheets não esteja disponível/configurada, é usado um dicionário de fallback embutido no código com limites definidos.
-5. **Deduplicação Inteligente (Webhook vs Organizze):** Transações originadas pelo Apple Wallet via Webhook são registradas com valor positivo e sem `invoice_date`. A conciliação automática converte os valores para módulo (`abs()`) ao gerar a assinatura de hash, permitindo o batimento de transações positivas (Webhook) com transações negativas (Despesas do Organizze). Ao ser conciliada, a transação "herda" retroativamente os campos essenciais da API (`invoice_date`, `category_name`, etc.) para que fique visível nos cálculos do Burn Rate, garantindo consistência no banco sem perder a descrição original do usuário.
+1. **Filtro de cartões:** apenas despesas de cartões monitorados são processadas (Santander AA, Itaú Azul).
+2. **Ciclo de fatura:** o sistema busca lançamentos pelo endpoint de faturas (`/invoices`), agrupando pela data de vencimento (`invoice_date`) e não pela data da compra, para respeitar transações movidas manualmente entre faturas.
+3. **Burn rate:** os gastos são agrupados por categoria (em valor absoluto) e comparados aos limites cadastrados no banco, gerando também a meta diária restante no mês.
+4. **Deduplicação (Webhook × Organizze):** transações do Apple Wallet chegam via webhook com valor positivo e sem `invoice_date`. A assinatura de hash usa `abs()` do valor, permitindo casar com as despesas negativas do Organizze. Ao conciliar, a transação herda `invoice_date`, `category_name` etc. da API, entrando no cálculo do burn rate sem perder a descrição original.
 
 ## Contato
 
-Para mais informações, entre em contato com brunoropacheco@gmail.com.
+Dúvidas: brunoropacheco@gmail.com
