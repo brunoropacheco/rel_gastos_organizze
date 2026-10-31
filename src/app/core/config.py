@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     def assemble_db_connection(cls, v: str) -> str:
         if v and v.startswith("postgres://"):
             return v.replace("postgres://", "postgresql://", 1)
+        # O app usa psycopg2 (sync) e asyncpg (async); remove drivers explícitos
+        # como "+psycopg" que não estão instalados.
+        if v and v.startswith("postgresql+"):
+            return "postgresql://" + v.split("://", 1)[1]
         return v
     
     model_config = {"env_file": ".env", "extra": "ignore"}
