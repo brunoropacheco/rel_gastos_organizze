@@ -1,3 +1,4 @@
+import re
 from pydantic_settings import BaseSettings
 from pydantic import field_validator
 
@@ -13,14 +14,13 @@ class Settings(BaseSettings):
     
     @field_validator("database_url", mode="before")
     def assemble_db_connection(cls, v: str) -> str:
-        if v and v.startswith("postgres://"):
-            return v.replace("postgres://", "postgresql://", 1)
-        # O app usa psycopg2 (sync) e asyncpg (async); remove drivers explícitos
-        # como "+psycopg" que não estão instalados.
-        if v and v.startswith("postgresql+"):
-            return "postgresql://" + v.split("://", 1)[1]
-        return v
-    
+        if not v:
+            return v
+        v = v.strip().strip("\"'").strip()
+        # Normaliza "postgres://" e "postgresql+<driver>://" para "postgresql://"
+        # (psycopg2 no sync, asyncpg no async via run_cron).
+        return re.sub(r"^postgres(?:ql)?(?:\+\w+)?://", "postgresql://", v)
+
     model_config = {"env_file": ".env", "extra": "ignore"}
 
 settings = Settings()
